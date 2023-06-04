@@ -35,7 +35,7 @@ fn get_folder_path() -> PathBuf {
     input.read_line(&mut images_folder);
     let dir = env::current_dir();
     if dir.is_err() {
-
+        todo!();
     }
 
     let mut binding = dir.unwrap();
