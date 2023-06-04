@@ -13,8 +13,20 @@ use winapi::um::winuser::SPIF_UPDATEINIFILE;
 use winapi::um::winuser::SPI_SETDESKWALLPAPER;
 use winapi::um::winuser::SPIF_SENDCHANGE;
 
+use live_wallpapers::*;
 
 fn main() {
+    let class_name = wide_null("Window Class Name");
+    let window_name = wide_null("Window Name");
+    let (window_class, h_instance) = WNDCLASSW::create(&class_name);
+    let window_handle = create_window_handle(&window_class, &class_name, &window_name, h_instance);
+    let window = create_window(window_handle);
+
+
+    loop {
+
+    }
+
     let path = get_folder_path();
     let delay = get_delay();
     let path_str = path.to_str().unwrap().trim();
