@@ -86,9 +86,10 @@ use winapi::um::winuser::{
     WM_DESTROY,
 };
 
-pub static mut WORKER_W : HWND = null_mut();
 pub const SHELLDLL_DEF_VIEW_STR : &str = "SHELLDLL_DefView";
 pub const WORKER_W_STR : &str = "WorkerW";
+
+static mut WORKER_W : HWND = null_mut();
 
 pub fn create_window_class(name: &Vec<u16>) -> (WNDCLASSW, HINSTANCE) {
     let h_instance = unsafe { GetModuleHandleW(core::ptr::null()) };
@@ -136,41 +137,56 @@ pub fn create_window(handle: HWND) {
     let _previously_visible = unsafe { ShowWindow(handle, SW_SHOW) };
 }
 
-pub fn post(handle: HWND) {
-    // Find `Progman` and get handle
+/// Find `Progman` and get handle
+pub fn get_progman_handle() -> HWND {
     let h_progman = unsafe { FindWindowW(wide_null("Progman").as_ptr(), null_mut()) };
+    h_progman
+}
 
-    // Message to `Progman` to spawn a `WorkerW`. Requare all!
+/// Message to `Progman` to spawn a `WorkerW`
+pub fn try_spawn_worker_w(progman_handle: HWND) -> Result<(), &'static str> {
+    // Requare all!
     let send_message_results = unsafe { [
-        SendMessageTimeoutW(h_progman, 0x052C, 0, 0, SMTO_NORMAL, 1000, null_mut()),
-        SendMessageTimeoutW(h_progman, 0x052C, 0x0d, 0, SMTO_NORMAL, 1000, null_mut()),
-        SendMessageTimeoutW(h_progman, 0x052C, 0x0d, 1, SMTO_NORMAL, 1000, null_mut())
+        SendMessageTimeoutW(progman_handle, 0x052C, 0, 0, SMTO_NORMAL, 1000, null_mut()),
+        SendMessageTimeoutW(progman_handle, 0x052C, 0x0d, 0, SMTO_NORMAL, 1000, null_mut()),
+        SendMessageTimeoutW(progman_handle, 0x052C, 0x0d, 1, SMTO_NORMAL, 1000, null_mut())
     ] };
 
     if send_message_results.iter().all(|r| *r == 0) {
-        panic!("`Progman` failed to spawn WorkerW!");
+        return Err("`Progman` failed to spawn WorkerW!");
     }
 
-    // Find the newly created `WorkerW`
-    unsafe { EnumWindows(Some(enum_windows_proc), 0) };
+    Ok(())
+}
 
+/// Find the newly created `WorkerW`
+pub fn find_worker_w() -> HWND {
+    unsafe {
+        EnumWindows(Some(enum_windows_proc), 0);
+        return WORKER_W.clone();
+    };
+}
+
+/// Get desktop dpi and window dpi and return aspect
+pub fn get_dpi_aspect(handle: HWND) -> f64 {
     let desktop_dpi = unsafe { GetDpiForWindow(GetDesktopWindow()) };
-    let scale = desktop_dpi as f64 / unsafe { GetDpiForWindow(handle) } as f64;
+    let dpi_aspect = desktop_dpi as f64 / unsafe { GetDpiForWindow(handle) } as f64;
+    dpi_aspect
+}
 
-    // Set our window as the child of the newly created `WorkerW`
-    unsafe { SetParent(handle, WORKER_W) };
+pub fn pull_window_to_desktop(handle: HWND, worker_w_handle: HWND, dpi_aspect: f64) {
+    unsafe { SetParent(handle, worker_w_handle) };
     unsafe {
         SetWindowPos(
             handle,
             null_mut(),
             0,
             0,
-            (GetSystemMetrics(SM_CXSCREEN) as f64 * scale) as c_int,
-            (GetSystemMetrics(SM_CYSCREEN) as f64 * scale) as c_int,
+            (GetSystemMetrics(SM_CXSCREEN) as f64 * dpi_aspect) as c_int,
+            (GetSystemMetrics(SM_CYSCREEN) as f64 * dpi_aspect) as c_int,
             SWP_NOOWNERZORDER | SWP_NOZORDER
         )
     };
-
 
     unsafe { SystemParametersInfoW(20, 0, null_mut(), 0x1) };
 }
@@ -251,7 +267,7 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
             *ptr += 1;
             let mut ps = PAINTSTRUCT::default();
             let hdc = BeginPaint(hwnd, &mut ps);
-            let _success = FillRect(hdc, &ps.rcPaint, (COLOR_HIGHLIGHT + 1) as HBRUSH);
+            let _success = FillRect(hdc, &ps.rcPaint, (COLOR_HIGHLIGHT + 1 + ptr as i32) as HBRUSH);
             EndPaint(hwnd, &ps);
         }
         _ => return DefWindowProcW(hwnd, msg, w_param, l_param),

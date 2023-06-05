@@ -1,91 +1,32 @@
-use std::thread;
-use std::time::Duration;
+//#![windows_subsystem = "windows"]
 
-use winapi::um::winuser::GetDesktopWindow;
-use winapi::um::winuser::GetDpiForWindow;
-use winapi::um::winuser::MSG;
+use std::ptr::null_mut;
 
+use winapi::um::winuser::{MSG, InvalidateRect, RedrawWindow};
 use live_wallpapers::*;
 
 
 fn main() {
-    #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
     let class_name = wide_null("Window Class Name");
     let window_name = wide_null("Window Name");
     let (window_class, h_instance) = create_window_class(&class_name/*, Some(window_procedure)*/);
     let window_handle = create_window_handle(&window_class, &class_name, &window_name, h_instance);
-    let window = create_window(window_handle);
+    let _window = create_window(window_handle);
 
+    let progman_h = get_progman_handle();
+    if try_spawn_worker_w(progman_h).is_err() {
+        panic!("`Progman` failed to spawn WorkerW!");
+    };
 
-    post(window_handle);
+    let dpi_aspect = get_dpi_aspect(window_handle);
+    let worker_w_handle = find_worker_w();
+    pull_window_to_desktop(window_handle, worker_w_handle, dpi_aspect);
 
     let msg = MSG::default();
     loop {
         handle_window_messages(msg);
-    }
 
-    /*
-    let path = get_folder_path();
-    let delay = get_delay();
-    let path_str = path.to_str().unwrap().trim();
-
-    loop {
-        for i in 1..14 {
-            let img_path = format!("{}\\{}.jpeg", path_str, i);
-            set_wallpaper_img(img_path.as_str());
-            thread::sleep(Duration::from_millis(delay));
-        }
-    }
-    */
-}
-
-/*
-fn get_folder_path() -> PathBuf {
-    println!("Input images folder: ");
-    let input = std::io::stdin();
-    let mut images_folder = String::new();
-    input.read_line(&mut images_folder);
-    let dir = env::current_dir();
-    if dir.is_err() {
-        todo!();
-    }
-
-    let mut binding = dir.unwrap();
-    binding.push(images_folder);
-
-    println!("{}", binding.to_str().unwrap());
-    binding.clone()
-}
-
-fn get_delay() -> u64 {
-    println!("Input delay: ");
-    let input = std::io::stdin();
-    let mut delay_input = String::new();
-    input.read_line(&mut delay_input);
-    match delay_input.as_str().trim().parse() {
-        Ok(val) => val,
-        Err(e) => {
-            eprintln!("Can not parse delay string: {}\n({})", delay_input, e);
-            350
-        },
+        unsafe { InvalidateRect(window_handle, null_mut(), 0) };
+        unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), 0) };
     }
 }
-
-fn set_wallpaper_img(path: &str) {
-    let path = OsStr::new(path)
-            .encode_wide()
-            .chain(iter::once(0))
-            .collect::<Vec<u16>>();
-    unsafe {
-        let successful = SystemParametersInfoW(
-            SPI_SETDESKWALLPAPER,
-            0,
-            path.as_ptr() as *mut c_void,
-            SPIF_UPDATEINIFILE | SPIF_SENDCHANGE,
-        ) == 1;
-
-        if !successful {
-            println!("{}", std::io::Error::last_os_error().to_string());
-        }
-    }
-}*/
