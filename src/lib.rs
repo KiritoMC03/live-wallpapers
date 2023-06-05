@@ -8,6 +8,7 @@ use winapi::shared::minwindef::BOOL;
 use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::libloaderapi::GetModuleHandleW;
 
+use winapi::um::wingdi::{RGB, CreateSolidBrush, GetRValue, GetBValue, GetGValue};
 use winapi::um::winuser::{
     WNDCLASSW,
     PAINTSTRUCT,
@@ -27,7 +28,7 @@ use winapi::um::winuser::{
     SWP_NOZORDER,
     SWP_NOOWNERZORDER,
 
-    COLOR_HIGHLIGHT,
+    COLOR_HIGHLIGHT, GCLP_HBRBACKGROUND, SetClassLongPtrA,
 };
 
 use winapi::um::winuser::{
@@ -224,6 +225,8 @@ pub fn handle_window_messages(mut msg: MSG) {
     }
 }
 
+static mut FRAME : u128 = 0;
+
 pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: WPARAM, l_param: LPARAM,) -> LRESULT {
     match msg {
         WM_NCCREATE => {
@@ -245,30 +248,42 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
             PostQuitMessage(0);
         }
         WM_PAINT => {
-            println!("Paint !!!");
-//            let mut ps : PAINTSTRUCT = PAINTSTRUCT::default();
-//            let hdc : HDC = BeginPaint(hWnd, &mut ps);
-//            let mut rect : RECT = RECT { left: 150, top: 170, right: 1000, bottom: 1000 };
-//            GetClientRect(hWnd, &mut rect);
-//            let brush = COLOR_HIGHLIGHT + 1;
-//            FillRect(hdc, &rect, brush as HBRUSH);
-//
-//            let hdcDesktop = GetDC(null_mut());
-//
-//            ReleaseDC(null_mut(), hdcDesktop);
-//
-//            EndPaint(hWnd, &ps);
-//            return 0;
+//            println!("Paint !!!");
 
 
+            let colors = [
+                CUSTOM_RGB::new(255, 0, 0),   // Red
+                CUSTOM_RGB::new(0, 255, 0),   // Green
+                CUSTOM_RGB::new(0, 0, 255),   // Blue
+                CUSTOM_RGB::new(255, 255, 0), // Yellow
+            ];
 
-            let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut i32;
-            println!("Current ptr: {}", *ptr);
-            *ptr += 1;
-            let mut ps = PAINTSTRUCT::default();
+
+            let mut ps: PAINTSTRUCT = std::mem::zeroed();
             let hdc = BeginPaint(hwnd, &mut ps);
-            let _success = FillRect(hdc, &ps.rcPaint, (COLOR_HIGHLIGHT + 1 + ptr as i32) as HBRUSH);
+            let rect = &ps.rcPaint;
+
+            // Fill the background with a specific color (e.g., blue)
+            let color = interpolate_colors(&colors, (FRAME % 600 as u128) as f32 / 600_f32);
+            println!("unpacked: {}-{}-{}", GetRValue(color), GetGValue(color) ,GetBValue(color));
+            //            println!("col: {}, {}", color, FRAME);
+            let hbrush = CreateSolidBrush(color);
+            FillRect(hdc, rect, hbrush);
+
             EndPaint(hwnd, &ps);
+            FRAME += 1;
+
+
+
+//            let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut i32;
+//            println!("Current ptr: {}", *ptr);
+//            *ptr += 1;
+//            let mut ps = PAINTSTRUCT::default();
+//            let hdc = BeginPaint(hwnd, &mut ps);
+//
+//            let brush_color = RGB(255, 0, 0); // Color is set to red (change as needed)
+//            let _success = FillRect(hdc, &ps.rcPaint, (brush_color) as HBRUSH);
+//            EndPaint(hwnd, &ps);
         }
         _ => return DefWindowProcW(hwnd, msg, w_param, l_param),
     }
@@ -278,4 +293,29 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
 
 pub fn wide_null(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(Some(0)).collect()
+}
+
+type CUSTOM_RGB = rgb::RGB<u8>;
+
+fn interpolate_colors(colors: &[CUSTOM_RGB], weight: f32) -> u32 {
+    let num_colors = colors.len();
+    let segment = 1.0 / (num_colors - 1) as f32;
+
+    // Find the two adjacent colors for the given weight
+    let index1 = (weight / segment).floor() as usize;
+    let index2 = index1 + 1;
+
+    let color1 = colors[index1];
+    let color2 = colors[index2];
+
+    // Calculate the weight within the segment
+    let segment_weight = (weight - index1 as f32 * segment) / segment;
+
+    // Interpolate between the two colors
+    let r = ((1.0 - segment_weight) * color1.r as f32 + segment_weight * color2.r as f32) as u8;
+    let g = ((1.0 - segment_weight) * color1.g as f32 + segment_weight * color2.g as f32) as u8;
+    let b = ((1.0 - segment_weight) * color1.b as f32 + segment_weight * color2.b as f32) as u8;
+
+    println!("{}-{}-{}", r, g ,b);
+    RGB(r, g, b)
 }

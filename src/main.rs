@@ -1,6 +1,6 @@
 //#![windows_subsystem = "windows"]
 
-use std::ptr::null_mut;
+use std::{ptr::null_mut, thread, time::Duration};
 
 use winapi::um::winuser::{MSG, InvalidateRect, RedrawWindow};
 use live_wallpapers::*;
@@ -26,6 +26,7 @@ fn main() {
     loop {
         handle_window_messages(msg);
 
+        thread::sleep(Duration::from_millis(50));
         unsafe { InvalidateRect(window_handle, null_mut(), 0) };
         unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), 0) };
     }
