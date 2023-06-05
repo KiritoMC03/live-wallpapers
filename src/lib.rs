@@ -40,7 +40,7 @@ pub use winapi::um::winuser::{
     ReleaseDC,
 };
 
-use winapi::um::winuser::{GetMessageW, TranslateMessage, DispatchMessageW, WM_NCCREATE, WM_CREATE, WM_SETCURSOR, COLOR_BACKGROUND, COLOR_HIGHLIGHT, };
+use winapi::um::winuser::{GetMessageW, TranslateMessage, DispatchMessageW, WM_NCCREATE, WM_CREATE, WM_SETCURSOR, COLOR_BACKGROUND, COLOR_HIGHLIGHT, SystemParametersInfoW, FindWindowW, };
 use winapi::um::winuser::{BeginPaint, FillRect, EndPaint};
 
 pub use winapi::shared::windef::{
@@ -125,23 +125,36 @@ pub static mut WORKER_W : HWND = null_mut();
 
 pub fn create_window(handle: HWND) {
     let _previously_visible = unsafe { ShowWindow(handle, SW_SHOW) };
+}
 
-    let r1 = unsafe { SendMessageTimeoutW(handle, 0x052C, 0, 0, SMTO_NORMAL, 1000, null_mut()) };
-    let r2 = unsafe { SendMessageTimeoutW(handle, 0x052C, 0x0d, 0, SMTO_NORMAL, 1000, null_mut()) };
-    let r3 = unsafe { SendMessageTimeoutW(handle, 0x052C, 0x0d, 1, SMTO_NORMAL, 1000, null_mut()) };
+pub fn post(handle: HWND) {
+    // find `Progman`
+    let hProgman = unsafe { FindWindowW(wide_null("Progman").as_ptr(), null_mut()) };
+
+    // Message to `Progman` to spawn a `WorkerW`
+    let r1 = unsafe { SendMessageTimeoutW(hProgman, 0x052C, 0, 0, SMTO_NORMAL, 1000, null_mut()) };
+    let r2 = unsafe { SendMessageTimeoutW(hProgman, 0x052C, 0x0d, 0, SMTO_NORMAL, 1000, null_mut()) };
+    let r3 = unsafe { SendMessageTimeoutW(hProgman, 0x052C, 0x0d, 1, SMTO_NORMAL, 1000, null_mut()) };
 
     println!("r {}", r1);
     println!("r {}", r2);
     println!("r {}", r3);
 
-//    let wallpaper_hwnd : HWND = null_mut();
+    // find the newly created `WorkerW`
     unsafe { EnumWindows(Some(enum_windows_proc), 0) };
+
+    // set our window as the child of the newly created `WorkerW`
+    unsafe { SetParent(handle, WORKER_W) };
+
+    unsafe { SetParent(handle, WORKER_W) };
+    unsafe { SystemParametersInfoW(20, 0, null_mut(), 0x1) };
 }
 
 pub unsafe extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
     let a = wide_null("SHELLDLL_DefView");
     let p = unsafe { FindWindowExW(hwnd, null_mut(), a.as_ptr(), null_mut()) };
 
+    println!("try found!");
     if !p.is_null()
     {
         println!("found window!");
@@ -151,8 +164,6 @@ pub unsafe extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> 
         if !WORKER_W.is_null(){
             println!("found WorkerW!");
         }
-
-        SetParent(hwnd, WORKER_W);
     }
 
     return 1;

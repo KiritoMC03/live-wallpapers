@@ -24,7 +24,7 @@ use live_wallpapers::*;
 
 
 fn main() {
-//    #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+    #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
     let class_name = wide_null("Window Class Name");
     let window_name = wide_null("Window Name");
     let (window_class, h_instance) = create_window_class(&class_name/*, Some(window_procedure)*/);
@@ -32,8 +32,14 @@ fn main() {
     let window = create_window(window_handle);
 
 
+    thread::sleep(Duration::from_secs(5));
 
-    
+
+    post(window_handle);
+
+
+
+
 
 
 
