@@ -14,8 +14,6 @@ use winapi::shared::minwindef::LRESULT;
 use winapi::shared::minwindef::UINT;
 use winapi::shared::minwindef::WPARAM;
 use winapi::shared::windef::HWND;
-use winapi::um::errhandlingapi::GetLastError;
-use winapi::um::winuser::GetMessageW;
 use winapi::um::winuser::MSG;
 use winapi::um::winuser::SystemParametersInfoW;
 use winapi::um::winuser::SPIF_UPDATEINIFILE;
@@ -24,12 +22,21 @@ use winapi::um::winuser::SPIF_SENDCHANGE;
 
 use live_wallpapers::*;
 
+
 fn main() {
+//    #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
     let class_name = wide_null("Window Class Name");
     let window_name = wide_null("Window Name");
     let (window_class, h_instance) = create_window_class(&class_name/*, Some(window_procedure)*/);
     let window_handle = create_window_handle(&window_class, &class_name, &window_name, h_instance);
     let window = create_window(window_handle);
+
+
+
+    
+
+
+
 
     let msg = MSG::default();
     loop {
@@ -51,10 +58,7 @@ fn main() {
     */
 }
 
-pub unsafe extern "system" fn window_procedure(ZzhWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM, ) -> LRESULT {
-    0
-}
-
+/*
 fn get_folder_path() -> PathBuf {
     println!("Input images folder: ");
     let input = std::io::stdin();
@@ -103,4 +107,4 @@ fn set_wallpaper_img(path: &str) {
             println!("{}", std::io::Error::last_os_error().to_string());
         }
     }
-}
+}*/
