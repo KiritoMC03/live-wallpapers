@@ -4,10 +4,19 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::iter;
 use std::path::PathBuf;
+use std::ptr::null_mut;
 use std::thread;
 use std::time::Duration;
 
 use winapi::ctypes::c_void;
+use winapi::shared::minwindef::LPARAM;
+use winapi::shared::minwindef::LRESULT;
+use winapi::shared::minwindef::UINT;
+use winapi::shared::minwindef::WPARAM;
+use winapi::shared::windef::HWND;
+use winapi::um::errhandlingapi::GetLastError;
+use winapi::um::winuser::GetMessageW;
+use winapi::um::winuser::MSG;
 use winapi::um::winuser::SystemParametersInfoW;
 use winapi::um::winuser::SPIF_UPDATEINIFILE;
 use winapi::um::winuser::SPI_SETDESKWALLPAPER;
@@ -18,15 +27,16 @@ use live_wallpapers::*;
 fn main() {
     let class_name = wide_null("Window Class Name");
     let window_name = wide_null("Window Name");
-    let (window_class, h_instance) = WNDCLASSW::create(&class_name);
+    let (window_class, h_instance) = create_window_class(&class_name/*, Some(window_procedure)*/);
     let window_handle = create_window_handle(&window_class, &class_name, &window_name, h_instance);
     let window = create_window(window_handle);
 
-
+    let msg = MSG::default();
     loop {
-
+        handle_window_messages(msg);
     }
 
+    /*
     let path = get_folder_path();
     let delay = get_delay();
     let path_str = path.to_str().unwrap().trim();
@@ -38,6 +48,11 @@ fn main() {
             thread::sleep(Duration::from_millis(delay));
         }
     }
+    */
+}
+
+pub unsafe extern "system" fn window_procedure(ZzhWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM, ) -> LRESULT {
+    0
 }
 
 fn get_folder_path() -> PathBuf {
