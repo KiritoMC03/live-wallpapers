@@ -1,24 +1,9 @@
-use std::env;
-
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
-use std::iter;
-use std::path::PathBuf;
-use std::ptr::null_mut;
 use std::thread;
 use std::time::Duration;
 
-use winapi::ctypes::c_void;
-use winapi::shared::minwindef::LPARAM;
-use winapi::shared::minwindef::LRESULT;
-use winapi::shared::minwindef::UINT;
-use winapi::shared::minwindef::WPARAM;
-use winapi::shared::windef::HWND;
+use winapi::um::winuser::GetDesktopWindow;
+use winapi::um::winuser::GetDpiForWindow;
 use winapi::um::winuser::MSG;
-use winapi::um::winuser::SystemParametersInfoW;
-use winapi::um::winuser::SPIF_UPDATEINIFILE;
-use winapi::um::winuser::SPI_SETDESKWALLPAPER;
-use winapi::um::winuser::SPIF_SENDCHANGE;
 
 use live_wallpapers::*;
 
@@ -32,17 +17,7 @@ fn main() {
     let window = create_window(window_handle);
 
 
-    thread::sleep(Duration::from_secs(5));
-
-
     post(window_handle);
-
-
-
-
-
-
-
 
     let msg = MSG::default();
     loop {

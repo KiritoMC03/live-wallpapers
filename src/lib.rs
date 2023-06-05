@@ -1,25 +1,36 @@
-use std::os::raw::c_int;
 use std::default::Default;
-pub use core::ptr::{null, null_mut};
+use core::ptr::null_mut;
 
-pub use winapi::shared::basetsd::LONG_PTR;
+use winapi::ctypes::c_int;
+use winapi::shared::basetsd::LONG_PTR;
 use winapi::shared::minwindef::BOOL;
-pub use winapi::shared::ntdef::LPCWSTR;
 
-pub use winapi::um::errhandlingapi::GetLastError;
-pub use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::errhandlingapi::GetLastError;
+use winapi::um::libloaderapi::GetModuleHandleW;
 
-pub use winapi::um::winuser::{
+use winapi::um::winuser::{
     WNDCLASSW,
-    WNDPROC,
     PAINTSTRUCT,
     CREATESTRUCTW,
     MSG,
-    WM_PAINT,
-    COLOR_WINDOW,
     IDC_ARROW,
     GWLP_USERDATA,
     SMTO_NORMAL,
+
+    WM_CREATE,
+    WM_NCCREATE,
+    WM_PAINT,
+    WS_POPUP,
+    WS_VISIBLE,
+    SM_CXSCREEN,
+    SM_CYSCREEN,
+    SWP_NOZORDER,
+    SWP_NOOWNERZORDER,
+
+    COLOR_HIGHLIGHT,
+};
+
+use winapi::um::winuser::{
     DefWindowProcW,
     RegisterClassW,
     CreateWindowExW,
@@ -27,57 +38,57 @@ pub use winapi::um::winuser::{
     EnumWindows,
     DestroyWindow,
     PostQuitMessage,
+    FindWindowW,
     FindWindowExW,
-    LoadCursorW,
-    SetCursor,
     GetWindowLongPtrW,
     SetWindowLongPtrW,
     SendMessageTimeoutW,
+
+    GetSystemMetrics,
+    SetWindowPos,
     SetParent,
+    GetDesktopWindow,
+    GetDpiForWindow,
 
-    GetClientRect,
-    GetDC,
-    ReleaseDC,
+    LoadCursorW,
 };
 
-use winapi::um::winuser::{GetMessageW, TranslateMessage, DispatchMessageW, WM_NCCREATE, WM_CREATE, WM_SETCURSOR, COLOR_BACKGROUND, COLOR_HIGHLIGHT, SystemParametersInfoW, FindWindowW, };
-use winapi::um::winuser::{BeginPaint, FillRect, EndPaint};
+use winapi::um::winuser::{
+    GetMessageW,
+    TranslateMessage,
+    DispatchMessageW,
+    SystemParametersInfoW,
+};
 
-pub use winapi::shared::windef::{
+use winapi::um::winuser::{
+    BeginPaint,
+    FillRect,
+    EndPaint,
+};
+
+use winapi::shared::windef::{
     HWND,
-    HICON,
-    HCURSOR,
     HBRUSH,
-    RECT,
-    HDC,
-    POINT,
 };
 
-pub use winapi::shared::minwindef::{
+use winapi::shared::minwindef::{
     UINT,
-    BYTE,
     HINSTANCE,
     WPARAM,
     LPARAM,
     LRESULT,
 };
 
-pub use winapi::um::winuser::{
+use winapi::um::winuser::{
     SW_SHOW,
-
-    WS_OVERLAPPED,
-    WS_CAPTION,
-    WS_SYSMENU,
-    WS_THICKFRAME,
-    WS_MINIMIZEBOX,
-    WS_MAXIMIZEBOX,
-    WS_OVERLAPPEDWINDOW,
-
-    CW_USEDEFAULT,
 
     WM_CLOSE,
     WM_DESTROY,
 };
+
+pub static mut WORKER_W : HWND = null_mut();
+pub const SHELLDLL_DEF_VIEW_STR : &str = "SHELLDLL_DefView";
+pub const WORKER_W_STR : &str = "WorkerW";
 
 pub fn create_window_class(name: &Vec<u16>) -> (WNDCLASSW, HINSTANCE) {
     let h_instance = unsafe { GetModuleHandleW(core::ptr::null()) };
@@ -103,11 +114,11 @@ pub fn create_window_handle(wc: &WNDCLASSW, wc_name: &Vec<u16>, window_name: &Ve
             0,
             wc_name.as_ptr(),
             window_name.as_ptr(),
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
+            WS_POPUP | WS_VISIBLE,
+            0,
+            0,
+            0,
+            0,
             core::ptr::null_mut(),
             core::ptr::null_mut(),
             h_instance,
@@ -121,56 +132,65 @@ pub fn create_window_handle(wc: &WNDCLASSW, wc_name: &Vec<u16>, window_name: &Ve
     hwnd
 }
 
-pub static mut WORKER_W : HWND = null_mut();
-
 pub fn create_window(handle: HWND) {
     let _previously_visible = unsafe { ShowWindow(handle, SW_SHOW) };
 }
 
 pub fn post(handle: HWND) {
-    // find `Progman`
-    let hProgman = unsafe { FindWindowW(wide_null("Progman").as_ptr(), null_mut()) };
+    // Find `Progman` and get handle
+    let h_progman = unsafe { FindWindowW(wide_null("Progman").as_ptr(), null_mut()) };
 
-    // Message to `Progman` to spawn a `WorkerW`
-    let r1 = unsafe { SendMessageTimeoutW(hProgman, 0x052C, 0, 0, SMTO_NORMAL, 1000, null_mut()) };
-    let r2 = unsafe { SendMessageTimeoutW(hProgman, 0x052C, 0x0d, 0, SMTO_NORMAL, 1000, null_mut()) };
-    let r3 = unsafe { SendMessageTimeoutW(hProgman, 0x052C, 0x0d, 1, SMTO_NORMAL, 1000, null_mut()) };
+    // Message to `Progman` to spawn a `WorkerW`. Requare all!
+    let send_message_results = unsafe { [
+        SendMessageTimeoutW(h_progman, 0x052C, 0, 0, SMTO_NORMAL, 1000, null_mut()),
+        SendMessageTimeoutW(h_progman, 0x052C, 0x0d, 0, SMTO_NORMAL, 1000, null_mut()),
+        SendMessageTimeoutW(h_progman, 0x052C, 0x0d, 1, SMTO_NORMAL, 1000, null_mut())
+    ] };
 
-    println!("r {}", r1);
-    println!("r {}", r2);
-    println!("r {}", r3);
+    if send_message_results.iter().all(|r| *r == 0) {
+        panic!("`Progman` failed to spawn WorkerW!");
+    }
 
-    // find the newly created `WorkerW`
+    // Find the newly created `WorkerW`
     unsafe { EnumWindows(Some(enum_windows_proc), 0) };
 
-    // set our window as the child of the newly created `WorkerW`
-    unsafe { SetParent(handle, WORKER_W) };
+    let desktop_dpi = unsafe { GetDpiForWindow(GetDesktopWindow()) };
+    let scale = desktop_dpi as f64 / unsafe { GetDpiForWindow(handle) } as f64;
 
+    // Set our window as the child of the newly created `WorkerW`
     unsafe { SetParent(handle, WORKER_W) };
+    unsafe {
+        SetWindowPos(
+            handle,
+            null_mut(),
+            0,
+            0,
+            (GetSystemMetrics(SM_CXSCREEN) as f64 * scale) as c_int,
+            (GetSystemMetrics(SM_CYSCREEN) as f64 * scale) as c_int,
+            SWP_NOOWNERZORDER | SWP_NOZORDER
+        )
+    };
+
+
     unsafe { SystemParametersInfoW(20, 0, null_mut(), 0x1) };
 }
 
-pub unsafe extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
-    let a = wide_null("SHELLDLL_DefView");
-    let p = unsafe { FindWindowExW(hwnd, null_mut(), a.as_ptr(), null_mut()) };
+pub unsafe extern "system" fn enum_windows_proc(hwnd: HWND, _l_param: LPARAM) -> BOOL {
+    let shelldll_def_view_name = wide_null(SHELLDLL_DEF_VIEW_STR);
+    let cur_hwnd = unsafe { FindWindowExW(hwnd, null_mut(), shelldll_def_view_name.as_ptr(), null_mut()) };
 
-    println!("try found!");
-    if !p.is_null()
+    if !cur_hwnd.is_null()
     {
-        println!("found window!");
-        let b = wide_null("WorkerW");
+        println!("{} window found!", SHELLDLL_DEF_VIEW_STR);
+        let worker_w_name = wide_null(WORKER_W_STR);
         // Gets the WorkerW Window after the current one.
-        unsafe { WORKER_W = FindWindowExW(null_mut(), hwnd, b.as_ptr(), null_mut()) };
-        if !WORKER_W.is_null(){
-            println!("found WorkerW!");
+        unsafe { WORKER_W = FindWindowExW(null_mut(), hwnd, worker_w_name.as_ptr(), null_mut()) };
+        if !WORKER_W.is_null() {
+            println!("{} window found!", WORKER_W_STR);
         }
     }
 
     return 1;
-}
-
-pub fn wide_null(s: &str) -> Vec<u16> {
-    s.encode_utf16().chain(Some(0)).collect()
 }
 
 pub fn handle_window_messages(mut msg: MSG) {
@@ -188,22 +208,22 @@ pub fn handle_window_messages(mut msg: MSG) {
     }
 }
 
-pub unsafe extern "system" fn window_procedure(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM,) -> LRESULT {
-    match Msg {
+pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: WPARAM, l_param: LPARAM,) -> LRESULT {
+    match msg {
         WM_NCCREATE => {
             println!("NC Create");
-            let createstruct: *mut CREATESTRUCTW = lParam as *mut _;
+            let createstruct: *mut CREATESTRUCTW = l_param as *mut _;
             if createstruct.is_null() {
                 return 0;
             }
             let boxed_i32_ptr = (*createstruct).lpCreateParams;
-            SetWindowLongPtrW(hWnd, GWLP_USERDATA, boxed_i32_ptr as LONG_PTR);
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, boxed_i32_ptr as LONG_PTR);
             return 1;
         }
-        WM_CREATE => println!("Create"),
-        WM_CLOSE => drop(DestroyWindow(hWnd)),
+        WM_CREATE => println!("WM Create"),
+        WM_CLOSE => drop(DestroyWindow(hwnd)),
         WM_DESTROY => {
-            let ptr = GetWindowLongPtrW(hWnd, GWLP_USERDATA) as *mut i32;
+            let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut i32;
             drop(Box::from_raw(ptr));
             println!("Cleaned up the box.");
             PostQuitMessage(0);
@@ -226,16 +246,20 @@ pub unsafe extern "system" fn window_procedure(hWnd: HWND, Msg: UINT, wParam: WP
 
 
 
-            let ptr = GetWindowLongPtrW(hWnd, GWLP_USERDATA) as *mut i32;
+            let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut i32;
             println!("Current ptr: {}", *ptr);
             *ptr += 1;
             let mut ps = PAINTSTRUCT::default();
-            let hdc = BeginPaint(hWnd, &mut ps);
+            let hdc = BeginPaint(hwnd, &mut ps);
             let _success = FillRect(hdc, &ps.rcPaint, (COLOR_HIGHLIGHT + 1) as HBRUSH);
-            EndPaint(hWnd, &ps);
+            EndPaint(hwnd, &ps);
         }
-        _ => return DefWindowProcW(hWnd, Msg, wParam, lParam),
+        _ => return DefWindowProcW(hwnd, msg, w_param, l_param),
     }
     
     0
+}
+
+pub fn wide_null(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(Some(0)).collect()
 }
