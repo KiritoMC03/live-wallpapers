@@ -91,6 +91,8 @@ pub use winapi::um::winuser::{
 pub const SHELLDLL_DEF_VIEW_STR : &str = "SHELLDLL_DefView";
 pub const WORKER_W_STR : &str = "WorkerW";
 
+pub mod drawing;
+
 static mut WORKER_W : HWND = null_mut();
 
 pub fn create_window_class(name: &Vec<u16>, window_procedure: WNDPROC) -> (WNDCLASSW, HINSTANCE) {

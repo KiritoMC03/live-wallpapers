@@ -2,13 +2,15 @@
 
 use std::{ptr::null_mut, thread, time::Duration};
 
-use winapi::um::winuser::{MSG, InvalidateRect, RedrawWindow};
+use winapi::{um::{winuser::{MSG, InvalidateRect, RedrawWindow, GetDC, GetWindowRect, ReleaseDC, LoadImageW, LR_LOADFROMFILE, IMAGE_BITMAP, LoadImageA, GetClientRect, ValidateRect}, wingdi::{SetPixel, DeleteObject, CreatePatternBrush, BITMAPINFO, RGBQUAD, BITMAPINFOHEADER, CreateCompatibleDC, CreateDIBSection, DIB_RGB_COLORS, SelectObject, SRCCOPY, BitBlt, BITMAP, GetObjectW, DeleteDC, CreateCompatibleBitmap}, winnt::LONG}, shared::windef::{RECT, HBITMAP, HDC}, ctypes::c_void};
 use live_wallpapers::*;
+use live_wallpapers::drawing::*;
 
 
 type CUSTOM_RGB = rgb::RGB<u8>;
 
 static mut FRAME : u128 = 0;
+static mut FRAME_PROCESSED : bool = false;
 
 fn main() {
     let class_name = wide_null("Window Class Name");
@@ -57,7 +59,11 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
             PostQuitMessage(0);
         }
         WM_PAINT => {
-            simulate_frame(hwnd);
+            if !FRAME_PROCESSED {
+                FRAME_PROCESSED = true;
+                simulate_frame(hwnd);
+                FRAME_PROCESSED = false;
+            }
         }
         _ => return DefWindowProcW(hwnd, msg, w_param, l_param),
     }
@@ -73,15 +79,14 @@ fn simulate_frame(hwnd: HWND) {
         CUSTOM_RGB::new(226, 239, 84),
     ];
 
-
     let mut ps: PAINTSTRUCT = PAINTSTRUCT::default();
     let hdc = unsafe { BeginPaint(hwnd, &mut ps) };
-    let rect = &ps.rcPaint;
 
-    // Fill the background with a specific color (e.g., blue)
+    // Fill the background with a specific color.
     let color = interpolate_colors(&colors, (unsafe { FRAME } % 200 as u128) as f32 / 200_f32);
-    let hbrush = unsafe { CreateSolidBrush(color) };
-    unsafe { FillRect(hdc, rect, hbrush) };
+    draw_fullscreen_rect(hdc, &ps, color);
+    draw_spiral(hdc);
+
     unsafe { EndPaint(hwnd, &ps) };
     unsafe { FRAME += 1 };
 
@@ -107,4 +112,28 @@ pub fn interpolate_colors(colors: &[CUSTOM_RGB], weight: f32) -> u32 {
     let b = ((1.0 - segment_weight) * color1.b as f32 + segment_weight * color2.b as f32) as u8;
 
     RGB(r, g, b)
+}
+
+pub fn draw_spiral(hdc: HDC) {
+    let mut angle = 0.0f32;
+    let radius_mul = 10.0f32;
+    let start_x : f32 = 1920.0 / 2.0;
+    let start_y : f32 = 1080.0 / 2.0;
+
+    for i in 0..1000 {
+        // Compute radius based on angle
+        let radius = angle.powf(0.8);
+
+        // Convert polar coordinates to Cartesian coordinates
+        let x = start_x + radius * angle.cos() * radius_mul;
+        let y = start_y + radius * angle.sin() * radius_mul;
+
+        let pixel_color = 0xFFFFFF; // white color
+        draw_circle_brush(x as i32, y as i32, 3, hdc, pixel_color);
+
+        // Increment the angle for the next iteration
+        let c = ((i / 500) as f32).powf(0.4) + 1f32;
+        let p = 0.05 / c;
+        angle += p;
+    }
 }
