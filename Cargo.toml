@@ -4,7 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-minifb = "0.24.0"
 rand = "0.8.5"
-rgb = "0.8.36"
 winapi = { version = "0.3.9", features = ["winuser", "processthreadsapi", "libloaderapi", "errhandlingapi", "impl-default"] }
