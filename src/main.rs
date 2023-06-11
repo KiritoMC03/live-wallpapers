@@ -1,11 +1,11 @@
 //#![windows_subsystem = "windows"]
-use std::{ptr::null_mut, thread, time::Duration};
+use std::ptr::null_mut;
 
 use winapi::um::winuser::{
     MSG,
-    InvalidateRect,
     RedrawWindow,
     GetCursorPos,
+    RDW_INVALIDATE,
 };
 
 use winapi::um::wingdi::TextOutW;
@@ -26,28 +26,18 @@ const WIDTH: usize = 1920;
 const HEIGHT: usize = 1080;
 
 fn main() {
-    let class_name = wide_null("Window Class Name");
-    let window_name = wide_null("Window Name");
-    let (window_class, h_instance) = create_window_class(&class_name, Some(window_procedure));
-    let window_handle = create_window_handle(&window_class, &class_name, &window_name, h_instance);
-    let _window = create_window(window_handle);
-
-    let progman_h = get_progman_handle();
-    if try_spawn_worker_w(progman_h).is_err() {
-        panic!("`Progman` failed to spawn WorkerW!");
-    };
-
-    let dpi_aspect = get_dpi_aspect(window_handle);
-    let worker_w_handle = find_worker_w();
-    pull_window_to_desktop(window_handle, worker_w_handle, dpi_aspect);
+    let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
 
     let msg = MSG::default();
-    loop {
-        handle_window_messages(msg);
-
-        thread::sleep(Duration::from_micros(16666));
-        unsafe { InvalidateRect(window_handle, null_mut(), 0) };
-        unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), 0) };
+    loop { // ToDo: stop on app close
+        if handle_window_messages(msg){ }
+        else {
+            unsafe {
+                if !FRAME_PROCESSED {
+                    RedrawWindow(window_handle, null_mut(), null_mut(), RDW_INVALIDATE);
+                }
+            }
+        }
     }
 }
 
@@ -71,13 +61,7 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
             println!("Cleaned up the box.");
             PostQuitMessage(0);
         }
-        WM_PAINT => {
-            if !FRAME_PROCESSED {
-                FRAME_PROCESSED = true;
-                simulate_frame(hwnd);
-                FRAME_PROCESSED = false;
-            }
-        }
+        WM_PAINT => simulate_frame(hwnd),
         _ => return DefWindowProcW(hwnd, msg, w_param, l_param),
     }
 
@@ -85,6 +69,12 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
 }
 
 fn simulate_frame(hwnd: HWND) {
+    unsafe {
+        if FRAME_PROCESSED {
+            return;
+        }
+        FRAME_PROCESSED = true;
+    }
     let colors = [
         RGB::new(226, 239, 84),
         RGB::new(255, 92, 102),
@@ -113,9 +103,12 @@ fn simulate_frame(hwnd: HWND) {
 
     let hello = wide_null("Hello, Windows!");
     unsafe { TextOutW(hdc, 0, 0, hello.as_ptr(), 15) };
-     draw_galaxy_step_inc(hdc, unsafe { &mut CURRENT_GALAXY });
+    draw_galaxy_step_inc(hdc, unsafe { &mut CURRENT_GALAXY });
 
-    unsafe { EndPaint(hwnd, &ps) };
-    unsafe { FRAME += 1 };
+    unsafe {
+        EndPaint(hwnd, &ps);
+        FRAME += 1;
+        FRAME_PROCESSED = false;
+    };
 }
 

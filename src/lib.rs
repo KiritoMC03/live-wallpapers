@@ -22,6 +22,7 @@ pub use winapi::um::winuser::{
     WM_CREATE,
     WM_NCCREATE,
     WM_PAINT,
+    PM_REMOVE,
     WS_POPUP,
     WS_VISIBLE,
     SM_CXSCREEN,
@@ -57,6 +58,7 @@ pub use winapi::um::winuser::{
 
 pub use winapi::um::winuser::{
     GetMessageW,
+    PeekMessageW,
     TranslateMessage,
     DispatchMessageW,
     SystemParametersInfoW,
@@ -213,10 +215,11 @@ pub unsafe extern "system" fn enum_windows_proc(hwnd: HWND, _l_param: LPARAM) ->
     return 1;
 }
 
-pub fn handle_window_messages(mut msg: MSG) {
-    let message_return = unsafe { GetMessageW(&mut msg, null_mut(), 0, 0) };
+/// returns TRUE if the message was received and processed
+pub fn handle_window_messages(mut msg: MSG) -> bool {
+    let message_return = unsafe { PeekMessageW(&mut msg, null_mut(), 0, 0, PM_REMOVE) };
     if message_return == 0 {
-        return;
+        return false;
     } else if message_return == -1 {
         let last_error = unsafe { GetLastError() };
         panic!("Error with `GetMessageW`, error code: {}", last_error);
@@ -226,6 +229,27 @@ pub fn handle_window_messages(mut msg: MSG) {
             DispatchMessageW(&msg);
         }
     }
+
+    true
+}
+
+pub fn create_desktop_window_fast(name: &str, window_procedure: WNDPROC) -> HWND {
+    let class_name = wide_null(format!("{} Class", name).as_str());
+    let window_name = wide_null(name);
+    let (window_class, h_instance) = create_window_class(&class_name, window_procedure);
+    let window_handle = create_window_handle(&window_class, &class_name, &window_name, h_instance);
+    create_window(window_handle);
+
+    let progman_h = get_progman_handle();
+    if try_spawn_worker_w(progman_h).is_err() {
+        panic!("`Progman` failed to spawn WorkerW!");
+    };
+
+    let dpi_aspect = get_dpi_aspect(window_handle);
+    let worker_w_handle = find_worker_w();
+    pull_window_to_desktop(window_handle, worker_w_handle, dpi_aspect);
+
+    window_handle
 }
 
 pub fn wide_null(s: &str) -> Vec<u16> {
