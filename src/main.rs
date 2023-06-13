@@ -1,15 +1,16 @@
 //#![windows_subsystem = "windows"]
 use std::ptr::null_mut;
 
+use micromath::vector::F32x2;
 use winapi::um::winuser::{
     MSG,
     RedrawWindow,
     GetCursorPos,
-    RDW_INVALIDATE,
+    RDW_INVALIDATE, SetProcessDPIAware,
 };
 
 use winapi::um::wingdi::TextOutW;
-use winapi::shared::windef::POINT;
+use winapi::shared::windef::{POINT, HDC};
 
 use live_wallpapers::*;
 use live_wallpapers::drawing::{
@@ -17,6 +18,10 @@ use live_wallpapers::drawing::{
     primitives::*,
     colors::*,
 };
+
+use live::bacteries::*;
+
+pub mod live;
 
 static mut APP_DATA : AppData = AppData{
     width: 0,
@@ -27,6 +32,7 @@ static mut APP_DATA : AppData = AppData{
     bg_progress: 0,
 };
 
+/// Ignore DPI.
 struct AppData {
     width: usize,
     height: usize,
@@ -38,14 +44,15 @@ struct AppData {
 
 fn main() {
     unsafe {
+        SetProcessDPIAware();
         APP_DATA = AppData {
             width: GetSystemMetrics(SM_CXSCREEN) as usize,
-            height: GetSystemMetrics(SM_CXSCREEN) as usize,
+            height: GetSystemMetrics(SM_CYSCREEN) as usize,
             frame_num: 0,
             frame_processed: false,
             current_galaxy: Galaxy::empty(),
             bg_progress: 0,
-        }
+        };
     }
     let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
 
@@ -116,23 +123,19 @@ fn simulate_frame(hwnd: HWND, app: &mut AppData) {
     let ptr = &mut p;
     unsafe { GetCursorPos(ptr) };
 
-    let mouse_x = p.x as f64;
-    let mouse_y = p.y as f64;
-        if app.current_galaxy.x != mouse_x || app.current_galaxy.y != mouse_y {
-        let color = interpolate_colors(&colors, (app.bg_progress % 200 as u128) as f32 / 200_f32);
-        draw_fullscreen_rect(hdc, &ps, color);
-        app.bg_progress += 1;
-        let c = random_color();
-        app.current_galaxy = Galaxy::new(mouse_x, mouse_y, app.width, app.height, c);
-    }
-
-    let hello = wide_null("Hello, Windows!");
-    unsafe { TextOutW(hdc, 0, 0, hello.as_ptr(), 15) };
-    draw_galaxy_step_inc(hdc, &mut app.current_galaxy);
+    let color = interpolate_colors(&colors, (app.bg_progress % 200 as u128) as f32 / 200_f32);
+    let bactery_color = random_color();
+    draw_fullscreen_rect(hdc, &ps, color);
+    let bacteries = Bacteries::rand_in_rect(100, 0.0, app.width as f32, 0.0, app.height as f32);
+    bacteries.draw(|pos| draw_circle(pos, hdc, bactery_color));
 
     unsafe {
         EndPaint(hwnd, &ps);
         app.frame_num += 1;
         app.frame_processed = false;
     };
+}
+
+fn draw_circle(pos: F32x2, hdc: HDC, color: u32) {
+    draw_circle_brush(pos.x as i32, pos.y as i32, 4, hdc, color);
 }

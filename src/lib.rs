@@ -173,14 +173,7 @@ pub fn find_worker_w() -> HWND {
     };
 }
 
-/// Get desktop dpi and window dpi and return aspect
-pub fn get_dpi_aspect(handle: HWND) -> f64 {
-    let desktop_dpi = unsafe { GetDpiForWindow(GetDesktopWindow()) };
-    let dpi_aspect = desktop_dpi as f64 / unsafe { GetDpiForWindow(handle) } as f64;
-    dpi_aspect
-}
-
-pub fn pull_window_to_desktop(handle: HWND, worker_w_handle: HWND, dpi_aspect: f64) {
+pub fn pull_window_to_desktop(handle: HWND, worker_w_handle: HWND) {
     unsafe { SetParent(handle, worker_w_handle) };
     unsafe {
         SetWindowPos(
@@ -188,8 +181,8 @@ pub fn pull_window_to_desktop(handle: HWND, worker_w_handle: HWND, dpi_aspect: f
             null_mut(),
             0,
             0,
-            (GetSystemMetrics(SM_CXSCREEN) as f64 * dpi_aspect) as c_int,
-            (GetSystemMetrics(SM_CYSCREEN) as f64 * dpi_aspect) as c_int,
+            GetSystemMetrics(SM_CXSCREEN) as c_int,
+            GetSystemMetrics(SM_CYSCREEN) as c_int,
             SWP_NOOWNERZORDER | SWP_NOZORDER
         )
     };
@@ -245,9 +238,8 @@ pub fn create_desktop_window_fast(name: &str, window_procedure: WNDPROC) -> HWND
         panic!("`Progman` failed to spawn WorkerW!");
     };
 
-    let dpi_aspect = get_dpi_aspect(window_handle);
     let worker_w_handle = find_worker_w();
-    pull_window_to_desktop(window_handle, worker_w_handle, dpi_aspect);
+    pull_window_to_desktop(window_handle, worker_w_handle);
 
     window_handle
 }
