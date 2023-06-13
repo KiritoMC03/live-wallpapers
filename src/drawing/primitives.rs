@@ -7,7 +7,7 @@ use winapi::um::wingdi::{
     CreateSolidBrush,
     CreatePen,
     MoveToEx,
-    LineTo,
+    LineTo, CreateCompatibleDC, CreateCompatibleBitmap, BitBlt, SRCCOPY, DeleteDC,
 };
 
 use winapi::um::wingdi::PS_SOLID;
@@ -19,8 +19,34 @@ use winapi::um::winuser::{
 
 use winapi::shared::windef::{
     HDC,
-    COLORREF,
+    COLORREF, HBITMAP,
 };
+
+pub struct DrawFrameData {
+    pub hdc: HDC,
+    h_bmp_mem: HBITMAP,
+    h_old_bmp_mem: HBITMAP,
+}
+
+pub fn onep_draw_frame(hdc: HDC, width: i32, height: i32) -> DrawFrameData {
+    unsafe {
+        let h_mem_dc = CreateCompatibleDC(hdc);
+        let h_bmp_mem = CreateCompatibleBitmap(hdc, width, height);
+        let h_old_bmp_mem = SelectObject(h_mem_dc, h_bmp_mem as _) as HBITMAP;
+
+        DrawFrameData { hdc: h_mem_dc, h_bmp_mem, h_old_bmp_mem }
+    }
+}
+
+pub fn close_draw_frame(hdc: HDC, width: i32, height: i32, draw_frame_data: DrawFrameData) {
+    unsafe {
+        BitBlt(hdc, 0, 0, width, height, draw_frame_data.hdc, 0, 0, SRCCOPY);
+
+        SelectObject(draw_frame_data.hdc, draw_frame_data.h_old_bmp_mem as _);
+        DeleteObject(draw_frame_data.h_bmp_mem as _);
+        DeleteDC(draw_frame_data.hdc);
+    }
+}
 
 pub fn draw_line(hdc: HDC, from: (i32, i32), to: (i32, i32), color: u32) {
     let pen = unsafe { CreatePen(PS_SOLID as i32, 2, color) };

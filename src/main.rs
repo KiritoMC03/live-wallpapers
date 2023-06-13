@@ -1,15 +1,15 @@
 //#![windows_subsystem = "windows"]
 use std::ptr::null_mut;
+use rand::Rng;
 
 use micromath::vector::F32x2;
 use winapi::um::winuser::{
     MSG,
     RedrawWindow,
     GetCursorPos,
-    RDW_INVALIDATE, SetProcessDPIAware,
+    RDW_INVALIDATE, SetProcessDPIAware, WM_ERASEBKGND,
 };
 
-use winapi::um::wingdi::TextOutW;
 use winapi::shared::windef::{POINT, HDC};
 
 use live_wallpapers::*;
@@ -19,6 +19,7 @@ use live_wallpapers::drawing::{
     colors::*,
 };
 
+use live::*;
 use live::bacteries::*;
 
 pub mod live;
@@ -28,8 +29,10 @@ static mut APP_DATA : AppData = AppData{
     height: 0,
     frame_num: 0,
     frame_processed: false,
+    delta_time: 0.0,
     current_galaxy: Galaxy::empty(),
     bg_progress: 0,
+    live_data: LiveData::empty(),
 };
 
 /// Ignore DPI.
@@ -38,8 +41,10 @@ struct AppData {
     height: usize,
     frame_num: u128,
     frame_processed: bool,
+    delta_time: f32,
     current_galaxy: Galaxy,
     bg_progress: u128,
+    live_data: LiveData,
 }
 
 fn main() {
@@ -50,9 +55,19 @@ fn main() {
             height: GetSystemMetrics(SM_CYSCREEN) as usize,
             frame_num: 0,
             frame_processed: false,
+            delta_time: 0.016666,
             current_galaxy: Galaxy::empty(),
             bg_progress: 0,
+            live_data: LiveData::default(),
         };
+
+        APP_DATA.live_data.bacteries = Bacteries::rand_in_rect(100, 0.0, APP_DATA.width as f32, 0.0, APP_DATA.height as f32);
+        for i in APP_DATA.live_data.bacteries.into_iter() {
+            APP_DATA.live_data.bacteries.velocity[i] = F32x2 {
+                x: rand::thread_rng().gen_range(-300..300) as f32,
+                y: rand::thread_rng().gen_range(-300..300) as f32,
+            }
+        }
     }
     let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
 
@@ -64,7 +79,7 @@ fn main() {
             unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), RDW_INVALIDATE); }
         }
 
-        std::thread::sleep(std::time::Duration::from_micros(16666));
+        std::thread::sleep(std::time::Duration::from_micros(1_000_000 / 80));
     }
 }
 
@@ -96,6 +111,7 @@ pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: UINT, w_param: W
             println!("Cleaned up the box.");
             PostQuitMessage(0);
         }
+        WM_ERASEBKGND => return 1,
         WM_PAINT => simulate_frame(hwnd, mut_app_data()),
         _ => return DefWindowProcW(hwnd, msg, w_param, l_param),
     }
@@ -109,31 +125,35 @@ fn simulate_frame(hwnd: HWND, app: &mut AppData) {
     }
     app.frame_processed = true;
 
-    let colors = [
-        RGB::new(226, 239, 84),
-        RGB::new(255, 92, 102),
-        RGB::new(98, 72, 213),
-        RGB::new(226, 239, 84),
-        ];
-
     let mut ps: PAINTSTRUCT = PAINTSTRUCT::default();
     let hdc = unsafe { BeginPaint(hwnd, &mut ps) };
+    unsafe { GetCursorPos(&mut POINT::default()) };
 
-    let mut p : POINT = POINT::default();
-    let ptr = &mut p;
-    unsafe { GetCursorPos(ptr) };
-
-    let color = interpolate_colors(&colors, (app.bg_progress % 200 as u128) as f32 / 200_f32);
-    let bactery_color = random_color();
-    draw_fullscreen_rect(hdc, &ps, color);
-    let bacteries = Bacteries::rand_in_rect(100, 0.0, app.width as f32, 0.0, app.height as f32);
-    bacteries.draw(|pos| draw_circle(pos, hdc, bactery_color));
+    paint_frame(hdc, &ps, app);
 
     unsafe {
         EndPaint(hwnd, &ps);
         app.frame_num += 1;
         app.frame_processed = false;
     };
+}
+
+fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
+    let colors = [
+        RGB::new(226, 239, 84),
+        RGB::new(255, 92, 102),
+        RGB::new(98, 72, 213),
+        RGB::new(226, 239, 84),
+    ];
+
+    let color = interpolate_colors(&colors, (app.bg_progress % 200 as u128) as f32 / 200_f32);
+    let bactery_color = winapi::um::wingdi::RGB(143, 0, 0);
+
+    let frame = onep_draw_frame(hdc, app.width as i32, app.height as i32);
+    draw_fullscreen_rect(frame.hdc, &ps, color);
+    app.live_data.bacteries.smart_move(app.delta_time, 0.0, app.width as f32, 0.0, app.height as f32);
+    app.live_data.bacteries.draw(|pos| draw_circle(pos, frame.hdc, bactery_color));
+    close_draw_frame(hdc, app.width as i32, app.height as i32, frame);
 }
 
 fn draw_circle(pos: F32x2, hdc: HDC, color: u32) {
