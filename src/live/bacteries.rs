@@ -1,5 +1,6 @@
 use micromath::vector::F32x2;
 use rand::Rng;
+use rapier2d::prelude::*;
 
 use super::spatial_hash::SpatialHash;
 
@@ -15,6 +16,8 @@ pub struct Bacteries {
     pub velocity: Vec<F32x2>,
     pub radius: Vec<i32>,
     pub spatial_hash: SpatialHash<usize>,
+    pub rigidbody: Vec<RigidBodyHandle>,
+    pub collider: Vec<ColliderHandle>,
     pub genome: Genome,
 }
 
@@ -38,6 +41,8 @@ impl Bacteries {
             velocity: vec![F32x2::default(); num],
             radius: vec![i32::default(); num],
             spatial_hash: SpatialHash::new(cell_size),
+            rigidbody: vec![RigidBodyHandle::default(); num],
+            collider: vec![ColliderHandle::default(); num],
             genome: Genome::new(num),
         };
 
@@ -51,6 +56,8 @@ impl Bacteries {
             velocity: vec![],
             radius: vec![],
             spatial_hash: SpatialHash::empty(),
+            rigidbody: vec![],
+            collider: vec![],
             genome: Genome::empty(),
         };
 
@@ -58,20 +65,54 @@ impl Bacteries {
     }
 
     pub fn rand_in_rect(num: usize, cell_size: f32, x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Bacteries {
-        let result = Bacteries {
+        let mut result = Bacteries {
             num,
-            pos: vec![rand_range_vec2(x_min, x_max, y_min, y_max); num],
+            pos: Vec::with_capacity(num),
             velocity: vec![F32x2::default(); num],
             radius: vec![0; num],
             spatial_hash: SpatialHash::new(cell_size),
+            rigidbody: Vec::with_capacity(num),
+            collider: Vec::with_capacity(num),
             genome: Genome::new(num),
         };
+
+        for _ in result.into_iter() {
+            result.pos.push(rand_range_vec2(x_min, x_max, y_min, y_max));
+        }
 
         result
     }
 
     pub fn set_random_radius(&mut self, min: i32, max: i32) {
-        self.radius = vec![rand_ranged_i32(min, max); self.num];
+        self.radius = Vec::with_capacity(self.num);
+        for _ in self.into_iter() {
+            self.radius.push(rand_ranged_i32(min, max))
+        }
+    }
+
+    pub fn actualize_rigidbodies(&mut self, rigidbody_set: &mut RigidBodySet) {
+        while self.rigidbody.len() < self.num {
+            let pos = self.pos[self.rigidbody.len()];
+            let rb = RigidBodyBuilder::dynamic()
+                .gravity_scale(0.0)
+                .ccd_enabled(true)
+                .position(Isometry::new(vector![pos.x, pos.y], 0.0))
+                .build();
+            self.rigidbody.push(rigidbody_set.insert(rb));
+        }
+    }
+
+    pub fn actualize_colliders(&mut self, colliders_set: &mut ColliderSet, rigidbody_set: &mut RigidBodySet) {
+        for i in self.into_iter() {
+            if self.collider.len() > i {
+                colliders_set.get_mut(self.collider[i]).unwrap().shape_mut().as_ball_mut().unwrap().radius = self.radius[i] as f32;
+            }
+            else {
+                let collider = ColliderBuilder::ball(self.radius[i] as f32).build();
+                let rb = self.rigidbody[i];
+                self.collider.push(colliders_set.insert_with_parent(collider, rb, rigidbody_set));
+            }
+        }
     }
 
     pub fn draw<T: Fn(F32x2, i32) -> ()>(&self, draw_func: T) {
@@ -92,55 +133,6 @@ impl Bacteries {
             cur.x = cur.x.clamp(x_min, x_max);
             cur.y = cur.y.clamp(y_min, y_max);
             self.pos[i] = cur;
-        }
-    }
-
-    pub fn detect_collisions(&self) -> Vec<Collision> {
-        let mut collisions = Vec::new();
-
-        for i in self.into_iter() {
-            match self.spatial_hash.querry_pos(self.pos[i]) {
-                Some(others) => {
-                    for j in others {
-                        if i == *j {
-                            continue;
-                        }
-
-                        if self.detect_collision(i, *j) {
-                            collisions.push(Collision{
-                                a: i,
-                                b: *j,
-                            });
-                        }
-                    }
-                },
-                None => {},
-            }
-        }
-
-        collisions
-    }
-
-    fn detect_collision(&self, a: usize, b: usize) -> bool {
-        let item_a = self.pos[a];
-        let item_b = self.pos[b];
-        let dx = item_a.x - item_b.x;
-        let dy = item_a.y - item_b.y;
-
-        let distance_squared = dx * dx + dy * dy;
-        let sum_of_rad = self.radius[a] + self.radius[b];
-
-        distance_squared <= (sum_of_rad * sum_of_rad) as f32
-    }
-
-    pub fn smart_move(&mut self, delta_time: f32, x_min: f32, x_max: f32, y_min: f32, y_max: f32) {
-        for i in self.into_iter() {
-            let mut cur = self.pos[i];
-            cur += self.velocity[i] * delta_time;
-            cur.x = cur.x.clamp(x_min, x_max);
-            cur.y = cur.y.clamp(y_min, y_max);
-            self.pos[i] = cur;
-            self.spatial_hash.update_position(cur, i);
         }
     }
 

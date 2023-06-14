@@ -3,11 +3,10 @@ use std::ptr::null_mut;
 use winapi::um::wingdi::{
     SelectObject,
     DeleteObject,
-    SetPixel,
     CreateSolidBrush,
     CreatePen,
     MoveToEx,
-    LineTo, CreateCompatibleDC, CreateCompatibleBitmap, BitBlt, SRCCOPY, DeleteDC,
+    LineTo, CreateCompatibleDC, CreateCompatibleBitmap, BitBlt, SRCCOPY, DeleteDC, Ellipse,
 };
 
 use winapi::um::wingdi::PS_SOLID;
@@ -19,7 +18,7 @@ use winapi::um::winuser::{
 
 use winapi::shared::windef::{
     HDC,
-    COLORREF, HBITMAP,
+    COLORREF, HBITMAP, RECT, HBRUSH,
 };
 
 pub struct DrawFrameData {
@@ -28,7 +27,21 @@ pub struct DrawFrameData {
     h_old_bmp_mem: HBITMAP,
 }
 
-pub fn onep_draw_frame(hdc: HDC, width: i32, height: i32) -> DrawFrameData {
+/// Return (brush, old_brush)
+pub fn change_solid_brush(hdc: HDC, color: u32) -> (HBRUSH, HBRUSH) {
+    let brush: HBRUSH = unsafe { CreateSolidBrush(color) };
+    let old_brush = unsafe { SelectObject(hdc, brush as _) } as HBRUSH;
+    (brush, old_brush)
+}
+
+pub fn revert_brush(hdc: HDC, brush: HBRUSH, old_brush: HBRUSH) {
+    unsafe {
+        SelectObject(hdc, old_brush as _);
+        DeleteObject(brush as _);
+    }
+}
+
+pub fn open_draw_frame(hdc: HDC, width: i32, height: i32) -> DrawFrameData {
     unsafe {
         let h_mem_dc = CreateCompatibleDC(hdc);
         let h_bmp_mem = CreateCompatibleBitmap(hdc, width, height);
@@ -56,15 +69,23 @@ pub fn draw_line(hdc: HDC, from: (i32, i32), to: (i32, i32), color: u32) {
     unsafe { SelectObject(hdc, old_pen) };
     unsafe { DeleteObject(pen as _) };
 }
-  
-pub fn draw_circle_brush(center_x: i32, center_y: i32, radius: i32, hdc: HDC, color: u32) {
-    for x in -radius..radius {
-        for y in -radius..radius {
-            let sqr_distance = (x * x + y * y) as f64;
-            if sqr_distance <= (radius * radius) as f64 {
-                unsafe { SetPixel(hdc, center_x + x, center_y + y, color) };
-            }
-        }
+
+/// Use current selected brush
+pub fn draw_circle(hdc: HDC, x: i32, y: i32, radius: i32) {
+    let left = x - radius;
+    let top = y - radius;
+    let right = x + radius;
+    let bottom = y + radius;
+
+    let rect = RECT {
+        left,
+        top,
+        right,
+        bottom,
+    };
+
+    unsafe {
+        Ellipse(hdc, rect.left, rect.top, rect.right, rect.bottom);
     }
 }
 
@@ -83,6 +104,11 @@ pub fn draw_spiral(hdc: HDC) {
     let start_x : f32 = 1920.0 / 2.0;
     let start_y : f32 = 1080.0 / 2.0;
 
+    let white_color = 0xFFFFFF;
+
+    let brush: HBRUSH = unsafe { CreateSolidBrush(white_color) };
+    let old_brush = unsafe { SelectObject(hdc, brush as _) };
+
     for i in 0..1000 {
         // Compute radius based on angle
         let radius = angle.powf(0.8);
@@ -90,14 +116,17 @@ pub fn draw_spiral(hdc: HDC) {
         // Convert polar coordinates to Cartesian coordinates
         let x = start_x + radius * angle.cos() * radius_mul;
         let y = start_y + radius * angle.sin() * radius_mul;
-
-        let pixel_color = 0xFFFFFF; // white color
-        draw_circle_brush(x as i32, y as i32, 3, hdc, pixel_color);
+        draw_circle(hdc, x as i32, y as i32, 3);
 
         // Increment the angle for the next iteration
         let c = ((i / 500) as f32).powf(0.4) + 1f32;
         let p = 0.05 / c;
         angle += p;
+    }
+
+    unsafe {
+        SelectObject(hdc, old_brush);
+        winapi::um::wingdi::DeleteObject(brush as _);
     }
 
     todo!("Add custom parameters!");
