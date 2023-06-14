@@ -1,4 +1,5 @@
 pub mod bacteries;
+pub mod spatial_hash;
 
 #[derive(Default)]
 pub struct LiveData {

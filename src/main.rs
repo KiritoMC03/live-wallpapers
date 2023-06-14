@@ -61,8 +61,11 @@ fn main() {
             live_data: LiveData::default(),
         };
 
-        APP_DATA.live_data.bacteries = Bacteries::rand_in_rect(100, 0.0, APP_DATA.width as f32, 0.0, APP_DATA.height as f32);
-        for i in APP_DATA.live_data.bacteries.into_iter() {
+        let radius_range = 4..16;
+        let cells_size = (radius_range.end * 3) as f32;
+        APP_DATA.live_data.bacteries = Bacteries::rand_in_rect(10, cells_size, 0.0, APP_DATA.width as f32, 0.0, APP_DATA.height as f32);
+        APP_DATA.live_data.bacteries.set_random_radius(radius_range.start, radius_range.end);
+                for i in APP_DATA.live_data.bacteries.into_iter() {
             APP_DATA.live_data.bacteries.velocity[i] = F32x2 {
                 x: rand::thread_rng().gen_range(-300..300) as f32,
                 y: rand::thread_rng().gen_range(-300..300) as f32,
@@ -73,13 +76,20 @@ fn main() {
 
     let msg = MSG::default();
     let app_data = ref_app_data();
+    let delay = 1_000_000 / 80;
     loop { // ToDo: stop on app close
+        let frame_start = std::time::Instant::now();
+
         if handle_window_messages(msg) { }
         else if !app_data.frame_processed {
             unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), RDW_INVALIDATE); }
         }
 
-        std::thread::sleep(std::time::Duration::from_micros(1_000_000 / 80));
+        let elapsed = frame_start.elapsed().as_micros();
+
+        if (elapsed as u64) < delay {
+            std::thread::sleep(std::time::Duration::from_micros(delay - elapsed as u64));
+        }
     }
 }
 
@@ -152,10 +162,16 @@ fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
     let frame = onep_draw_frame(hdc, app.width as i32, app.height as i32);
     draw_fullscreen_rect(frame.hdc, &ps, color);
     app.live_data.bacteries.smart_move(app.delta_time, 0.0, app.width as f32, 0.0, app.height as f32);
-    app.live_data.bacteries.draw(|pos| draw_circle(pos, frame.hdc, bactery_color));
+    let cs = app.live_data.bacteries.detect_collisions();
+    for c in cs {
+        println!("{} with {}", c.a, c.b);
+    }
+
+
+    app.live_data.bacteries.draw(|pos, rad| draw_circle(pos, rad, frame.hdc, bactery_color));
     close_draw_frame(hdc, app.width as i32, app.height as i32, frame);
 }
 
-fn draw_circle(pos: F32x2, hdc: HDC, color: u32) {
-    draw_circle_brush(pos.x as i32, pos.y as i32, 4, hdc, color);
+fn draw_circle(pos: F32x2, rad: i32, hdc: HDC, color: u32) {
+    draw_circle_brush(pos.x as i32, pos.y as i32, rad, hdc, color);
 }
