@@ -2,8 +2,6 @@ use micromath::vector::F32x2;
 use rand::Rng;
 use rapier2d::prelude::*;
 
-use super::spatial_hash::SpatialHash;
-
 pub struct Collision {
     pub a: usize,
     pub b: usize,
@@ -13,9 +11,7 @@ pub struct Collision {
 pub struct Bacteries {
     pub num: usize,
     pub pos: Vec<F32x2>,
-    pub velocity: Vec<F32x2>,
     pub radius: Vec<i32>,
-    pub spatial_hash: SpatialHash<usize>,
     pub rigidbody: Vec<RigidBodyHandle>,
     pub collider: Vec<ColliderHandle>,
     pub genome: Genome,
@@ -24,23 +20,38 @@ pub struct Bacteries {
 #[derive(Default, Clone)]
 pub struct Genome {
     pub length: usize,
-    pub photosynth: Vec<Gen<f32>>
+    pub photosynth: Vec<Gen>,
+    pub movement_force: Vec<Gen>,
+    pub movement_delay: Vec<Gen>,
 }
 
-#[derive(Default, Clone, Copy)]
-pub struct Gen<T> {
-    pub value: T,
-    pub weight: f32,
+pub type Gen = f32;
+
+pub trait GenTrait {
+    fn get(&self, idx: usize) -> Gen;
+    fn fill_default(&mut self);
+}
+
+impl GenTrait for Vec<Gen> {
+    #[inline(always)]
+    fn get(&self, idx: usize) -> Gen {
+        self[idx]
+    }
+
+    #[inline(always)]
+    fn fill_default(&mut self) {
+        for el in self {
+            *el = rand_ranged_f32(0.0, 1.0);
+        }
+    }
 }
 
 impl Bacteries {
-    pub fn new(num: usize, cell_size: f32) -> Bacteries {
+    pub fn new(num: usize) -> Bacteries {
         let result = Bacteries {
             num,
             pos: vec![F32x2::default(); num],
-            velocity: vec![F32x2::default(); num],
             radius: vec![i32::default(); num],
-            spatial_hash: SpatialHash::new(cell_size),
             rigidbody: vec![RigidBodyHandle::default(); num],
             collider: vec![ColliderHandle::default(); num],
             genome: Genome::new(num),
@@ -53,9 +64,7 @@ impl Bacteries {
         let result = Bacteries {
             num: 0,
             pos: vec![],
-            velocity: vec![],
             radius: vec![],
-            spatial_hash: SpatialHash::empty(),
             rigidbody: vec![],
             collider: vec![],
             genome: Genome::empty(),
@@ -64,13 +73,11 @@ impl Bacteries {
         result
     }
 
-    pub fn rand_in_rect(num: usize, cell_size: f32, x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Bacteries {
+    pub fn rand_in_rect(num: usize, x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> Bacteries {
         let mut result = Bacteries {
             num,
             pos: Vec::with_capacity(num),
-            velocity: vec![F32x2::default(); num],
             radius: vec![0; num],
-            spatial_hash: SpatialHash::new(cell_size),
             rigidbody: Vec::with_capacity(num),
             collider: Vec::with_capacity(num),
             genome: Genome::new(num),
@@ -121,12 +128,6 @@ impl Bacteries {
         }
     }
 
-    pub fn move_all(&mut self, delta_time: f32)  {
-        for i in self.into_iter() {
-            self.pos[i] += self.velocity[i] * delta_time;
-        }
-    }
-
     pub fn clamp_pos(&mut self, x_min: f32, x_max: f32, y_min: f32, y_max: f32) {
         for i in self.into_iter() {
             let mut cur = self.pos[i];
@@ -139,13 +140,19 @@ impl Bacteries {
     pub fn into_iter(&self) -> std::ops::Range<usize> {
         0..self.num
     }
+
+    pub fn process_genome(&self) {
+
+    }
 }
 
 impl Genome {
     pub fn new(length: usize) -> Genome {
         Genome {
             length,
-            photosynth: vec![Gen::new(0.0, 0.0); length],
+            photosynth: vec![Gen::default(); length],
+            movement_force: vec![Gen::default(); length],
+            movement_delay: vec![Gen::default(); length],
         }
     }
 
@@ -153,22 +160,33 @@ impl Genome {
         Genome {
             length: 0,
             photosynth: vec![],
-        }
-    }
-}
-
-impl<T> Gen<T> {
-    pub const fn new(value: T, weight: f32) -> Gen<T> {
-        Gen {
-            value,
-            weight,
+            movement_force: vec![],
+            movement_delay: vec![],
         }
     }
 
-    pub const fn empty(value: T) -> Gen<T> {
-        Gen {
-            value,
-            weight: 0.0,
+    pub fn into_iter(&self) -> std::ops::Range<usize> {
+        0..self.length
+    }
+
+    pub fn fill_default(&mut self) {
+        self.photosynth.fill_default();
+        self.movement_force.fill_default();
+        self.movement_delay.fill_default();
+    }
+
+    pub fn normilize(&mut self) {
+        for i in self.into_iter() {
+            let arr = [
+                &mut self.photosynth[i],
+                &mut self.movement_force[i],
+                &mut self.movement_delay[i],
+            ];
+
+            let sum = arr.iter().map(|v| **v).sum::<f32>();
+            for number in arr {
+                *number /= sum;
+            }
         }
     }
 }
@@ -181,5 +199,9 @@ pub fn rand_range_vec2(x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> F32x2 
 }
 
 pub fn rand_ranged_i32(min: i32, max: i32) -> i32 {
+    rand::thread_rng().gen_range(min..max)
+}
+
+pub fn rand_ranged_f32(min: f32, max: f32) -> f32 {
     rand::thread_rng().gen_range(min..max)
 }

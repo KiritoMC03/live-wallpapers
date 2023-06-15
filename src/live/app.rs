@@ -46,8 +46,8 @@ impl AppData {
         self.physics_data = physics_data;
     }
     
-    pub fn spawn_bacteries(&mut self, radius: Range<i32>, cell_size: f32) {
-        self.live_data.bacteries = Bacteries::rand_in_rect(300, cell_size, 0.0, self.width as f32, 0.0, self.height as f32);
+    pub fn spawn_bacteries(&mut self, radius: Range<i32>) {
+        self.live_data.bacteries = Bacteries::rand_in_rect(300, 0.0, self.width as f32, 0.0, self.height as f32);
         self.live_data.bacteries.set_random_radius(radius.start, radius.end);
         self.live_data.bacteries.actualize_rigidbodies(&mut self.physics_data.bodies);
         self.live_data.bacteries.actualize_colliders(&mut self.physics_data.colliders, &mut self.physics_data.bodies);

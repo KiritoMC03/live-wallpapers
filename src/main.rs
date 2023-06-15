@@ -25,7 +25,13 @@ fn main() {
 
     let app = mut_app_data();
     app.build_physics();
-    app.spawn_bacteries(8..16, 48.0);
+    app.spawn_bacteries(8..16);
+    app.live_data.bacteries.genome.fill_default();
+    app.live_data.bacteries.genome.normilize();
+    for i in app.live_data.bacteries.into_iter() {
+        let g = &app.live_data.bacteries.genome;
+        println!("{} + {} + {} = {}", g.photosynth[i], g.movement_force[i], g.movement_delay[i], g.photosynth[i]+ g.movement_force[i]+ g.movement_delay[i]);
+    }
     app.with_edges(100.0, 100.0);
 
     for i in app.live_data.bacteries.into_iter() {
