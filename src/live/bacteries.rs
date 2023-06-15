@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use micromath::vector::F32x2;
 use rand::Rng;
 use rapier2d::prelude::*;
@@ -22,7 +24,7 @@ pub struct Genome {
     pub length: usize,
     pub photosynth: Vec<Gen>,
     pub movement_force: Vec<Gen>,
-    pub movement_delay: Vec<Gen>,
+    pub movement_rate: Vec<Gen>,
 }
 
 pub type Gen = f32;
@@ -115,7 +117,10 @@ impl Bacteries {
                 colliders_set.get_mut(self.collider[i]).unwrap().shape_mut().as_ball_mut().unwrap().radius = self.radius[i] as f32;
             }
             else {
-                let collider = ColliderBuilder::ball(self.radius[i] as f32).build();
+                let radius = self.radius[i] as f32;
+                let collider = ColliderBuilder::ball(radius)
+                    .mass(4.0/3.0 * PI * radius * radius)
+                    .build();
                 let rb = self.rigidbody[i];
                 self.collider.push(colliders_set.insert_with_parent(collider, rb, rigidbody_set));
             }
@@ -140,10 +145,6 @@ impl Bacteries {
     pub fn into_iter(&self) -> std::ops::Range<usize> {
         0..self.num
     }
-
-    pub fn process_genome(&self) {
-
-    }
 }
 
 impl Genome {
@@ -152,7 +153,7 @@ impl Genome {
             length,
             photosynth: vec![Gen::default(); length],
             movement_force: vec![Gen::default(); length],
-            movement_delay: vec![Gen::default(); length],
+            movement_rate: vec![Gen::default(); length],
         }
     }
 
@@ -161,7 +162,7 @@ impl Genome {
             length: 0,
             photosynth: vec![],
             movement_force: vec![],
-            movement_delay: vec![],
+            movement_rate: vec![],
         }
     }
 
@@ -172,7 +173,7 @@ impl Genome {
     pub fn fill_default(&mut self) {
         self.photosynth.fill_default();
         self.movement_force.fill_default();
-        self.movement_delay.fill_default();
+        self.movement_rate.fill_default();
     }
 
     pub fn normilize(&mut self) {
@@ -180,7 +181,7 @@ impl Genome {
             let arr = [
                 &mut self.photosynth[i],
                 &mut self.movement_force[i],
-                &mut self.movement_delay[i],
+                &mut self.movement_rate[i],
             ];
 
             let sum = arr.iter().map(|v| **v).sum::<f32>();

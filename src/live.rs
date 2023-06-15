@@ -2,6 +2,7 @@ pub mod app;
 pub mod physics;
 pub mod graphics;
 pub mod bacteries;
+pub mod genome_processing;
 
 #[derive(Default)]
 pub struct LiveData {

@@ -55,6 +55,7 @@ pub fn create_edges(width: f32, height: f32, edge_width: f32, edge_height: f32,
                     rigidbody_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
     let edge_rb = RigidBodyBuilder::kinematic_position_based()
                 .position(Isometry::new(vector![0.0, 0.0], 0.0))
+                .ccd_enabled(true)
                 .build();
     let edge_rb_handle = rigidbody_set.insert(edge_rb);
 

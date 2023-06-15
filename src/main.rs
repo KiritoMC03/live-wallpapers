@@ -14,6 +14,7 @@ use live_wallpapers::*;
 use live::app::*;
 use live::physics::*;
 use live::graphics::*;
+use live::genome_processing::*;
 
 pub mod live;
 
@@ -28,10 +29,6 @@ fn main() {
     app.spawn_bacteries(8..16);
     app.live_data.bacteries.genome.fill_default();
     app.live_data.bacteries.genome.normilize();
-    for i in app.live_data.bacteries.into_iter() {
-        let g = &app.live_data.bacteries.genome;
-        println!("{} + {} + {} = {}", g.photosynth[i], g.movement_force[i], g.movement_delay[i], g.photosynth[i]+ g.movement_force[i]+ g.movement_delay[i]);
-    }
     app.with_edges(100.0, 100.0);
 
     for i in app.live_data.bacteries.into_iter() {
@@ -55,6 +52,7 @@ fn loop_frames(delay: u64, app: &mut AppData, window_handle: HWND) {
 
         physics_step(&mut physics_pipeline, &mut app.physics_data);
         graphics_pipeline.step(msg, app, window_handle);
+        process_genome(app);
 
         let elapsed = frame_start.elapsed().as_micros();
         if (elapsed as u64) < delay {
