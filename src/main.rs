@@ -52,13 +52,25 @@ fn loop_frames(delay: u64, app: &mut AppData, window_handle: HWND) {
     loop { // ToDo: stop on app close
         let frame_start = std::time::Instant::now();
 
+        let total_fr_time = std::time::Instant::now();
         if app.frame_num % 100 == 0 {
             let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
             app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
         }
+
+        let a = std::time::Instant::now();
         physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
+        println!("a: {}", a.elapsed().as_millis());
+
+        let b = std::time::Instant::now();
         graphics_pipeline.step(msg, app, window_handle);
+        println!("b: {}", b.elapsed().as_millis());
+
+        let c = std::time::Instant::now();
         process_bacteries(app);
+        println!("c: {}", c.elapsed().as_millis());
+
+        println!("frame: {}", total_fr_time.elapsed().as_millis());
 
         let elapsed = frame_start.elapsed().as_micros();
         if (elapsed as u64) < delay {

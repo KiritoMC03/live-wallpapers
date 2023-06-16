@@ -54,6 +54,7 @@ pub fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
     draw_fullscreen_rect(frame.hdc, &ps, color);
 
 
+    // ToDo::::: move!!!
     for i in app.live_data.bacteries.into_iter() {
         let body = app.live_data.physics_data.get_rb(app.live_data.bacteries.rigidbody[i]);
         let pos = body.position();
@@ -75,21 +76,29 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
 
     let flagella_col = winapi::um::wingdi::RGB(0, 0, 0);
 
-    let t = std::time::Instant::now();
     let draw_lines_data = open_draw_lines(hdc, flagella_col);
+
+    let a = std::time::Instant::now();
     for i in bac.into_iter() {
         if bac.is_alive(i) {
             let val = (0.5 - bac.genome.photosynth[i] / 2.0 + bac.genome.carnivore[i] / 2.0).clamp(0.0, 9.9);
             let col = interpolate_colors(&colors, val);
             let (brush, old_brush) = change_solid_brush(hdc, col);
             let pos = bac.pos[i];
-            paint_flagella(hdc, bac, i);
             draw_circle(hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
             revert_brush(hdc, brush, old_brush);
         }
     }
+    println!("bacteries: {}", a.elapsed().as_millis());
+
+    let a = std::time::Instant::now();
+    for i in bac.into_iter() {
+        if bac.is_alive(i) {
+            paint_flagella(hdc, bac, i);
+        }
+    }
+    println!("flagella: {}", a.elapsed().as_millis());
     close_draw_lines(draw_lines_data);
-    println!("time: {}", t.elapsed().as_millis());
 }
 
 #[inline(always)]
@@ -97,17 +106,25 @@ fn paint_flagella(hdc: HDC, bac: &Bacteries, i: usize) {
     let len =  (FLAGELLA_LEN_RANGE.start as f32 + (FLAGELLA_LEN_RANGE.end - FLAGELLA_LEN_RANGE.start) as f32 * bac.genome.movement_force[i]).round();
     let num_points = (FLAGELLA_NUM_RANGE.start as f32 + (FLAGELLA_NUM_RANGE.end - FLAGELLA_NUM_RANGE.start) as f32 * bac.genome.movement_rate[i]).round();
 
-    let r1 = bac.radius[i] as f32;
+    let mut r1 = bac.radius[i] as f32;
+    r1 *= 0.9;
     let r2 = bac.radius[i] as f32 + len;
     let c = bac.pos[i];
 
+    type Point = winapi::shared::windef::POINT;
+    let mut pts = Vec::with_capacity(num_points as usize * 3);
     for i in 0..num_points as i32 {
         let angle = 2.0 * PI * (i as f32) / num_points;
         let x1 = (c.x + r1 * angle.cos()) as i32;
         let y1 = (c.y + r1 * angle.sin()) as i32;
         let x2 = (c.x + r2 * angle.cos()) as i32;
         let y2 = (c.y + r2 * angle.sin()) as i32;
-
-        draw_line(hdc, (x1, y1), (x2, y2));
+        pts.push(Point { x: x1, y: y1 });
+        pts.push(Point { x: x2, y: y2 });
+        pts.push(Point { x: x1, y: y1 });
     }
+
+    unsafe {
+        winapi::um::wingdi::Polyline(hdc, pts.as_ptr(), pts.len() as i32)
+    };
 }
