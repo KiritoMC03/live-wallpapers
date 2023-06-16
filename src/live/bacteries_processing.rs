@@ -25,6 +25,7 @@ pub const DEAD_TIME : f32 = 0.0;
 pub const START_ENERGY : f32 = 1.0;
 pub const DIVISION_ENERGY : f32 = 10.0;
 pub const ALIVE_TO_ENERGY_COEF : f32 = 0.1;
+pub const ALIVE_REGEN_RATE_SENS : i32 = 100;
 
 pub const PHOTOSYNTH : f32 = 0.01;
 pub const CARNIVORE_RATE : f32 = 14.0;
@@ -35,14 +36,14 @@ pub const GENOME_MUT_RANGE : Range<f32> = 0.9..1.1;
 pub const RADIUS_MUT_RANGE : Range<f32> = 0.9..1.1;
 
 pub fn process_bacteries(app: &mut AppData) {
-//    process_alive(app);
-//    process_movement(app);
-//
-//    if app.frame_num > 100 {
-//        process_photosynth(app);
-//        process_collisions(app);
-//        process_division(app);
-//    }
+    process_alive(app);
+    process_movement(app);
+
+    if app.frame_num > 100 {
+        process_photosynth(app);
+        process_collisions(app);
+        process_division(app);
+    }
 }
 
 fn process_alive(app: &mut AppData) {
@@ -53,11 +54,15 @@ fn process_alive(app: &mut AppData) {
             continue;
         }
 
-        if left_time < MAX_ALIVE - ALIVE_TO_ENERGY_COEF {
-            let energy = &mut live.bacteries.energy[i];
-            if *energy > 2.0 {
-                *energy -= 1.0;
-                left_time += ALIVE_TO_ENERGY_COEF;
+        let rate = live.bacteries.genome.live_regen_rate[i] * ALIVE_REGEN_RATE_SENS as f32;
+
+        if rate as i32 > rand_ranged_i32(0..MOVE_RATE_SENS) {
+            if left_time < MAX_ALIVE - ALIVE_TO_ENERGY_COEF {
+                let energy = &mut live.bacteries.energy[i];
+                if *energy > 2.0 {
+                    *energy -= 1.0;
+                    left_time += ALIVE_TO_ENERGY_COEF;
+                }
             }
         }
 

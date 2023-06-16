@@ -28,6 +28,7 @@ pub struct Bacteries {
 #[derive(Default, Clone)]
 pub struct Genome {
     pub length: usize,
+    pub live_regen_rate: Vec<Gen>,
     pub photosynth: Vec<Gen>,
     pub carnivore: Vec<Gen>,
     pub movement_force: Vec<Gen>,
@@ -192,6 +193,7 @@ impl Genome {
     pub fn new(length: usize) -> Genome {
         Genome {
             length,
+            live_regen_rate: vec![Gen::default(); length],
             photosynth: vec![Gen::default(); length],
             carnivore: vec![Gen::default(); length],
             movement_force: vec![Gen::default(); length],
@@ -199,9 +201,19 @@ impl Genome {
         }
     }
 
+    pub fn fill_default(&mut self) {
+        self.live_regen_rate.fill_default();
+        self.photosynth.fill_default();
+        self.carnivore.fill_default();
+        self.movement_force.fill_default();
+        self.movement_rate.fill_default();
+        self.normilize();
+    }
+
     pub const fn empty() -> Genome {
         Genome {
             length: 0,
+            live_regen_rate: vec![],
             photosynth: vec![],
             carnivore: vec![],
             movement_force: vec![],
@@ -210,6 +222,7 @@ impl Genome {
     }
 
     pub fn mut_clone(&mut self, from: usize, to: usize) {
+        self.live_regen_rate[to] = self.live_regen_rate[from] * rand_ranged_f32(GENOME_MUT_RANGE);
         self.photosynth[to] = self.photosynth[from] * rand_ranged_f32(GENOME_MUT_RANGE);
         self.carnivore[to] = self.carnivore[from] * rand_ranged_f32(GENOME_MUT_RANGE);
         self.movement_force[to] = self.movement_force[from] * rand_ranged_f32(GENOME_MUT_RANGE);
@@ -217,26 +230,9 @@ impl Genome {
         self.normilize_one(to);
     }
 
-    pub fn into_iter(&self) -> std::ops::Range<usize> {
-        0..self.length
-    }
-
-    pub fn fill_default(&mut self) {
-        self.photosynth.fill_default();
-        self.carnivore.fill_default();
-        self.movement_force.fill_default();
-        self.movement_rate.fill_default();
-        self.normilize();
-    }
-
-    pub fn normilize(&mut self) {
-        for i in self.into_iter() {
-            self.normilize_one(i)
-        }
-    }
-
     #[inline(always)]
     pub fn default_one(&mut self, i: usize) {
+        self.live_regen_rate.default_one(i);
         self.photosynth.default_one(i);
         self.carnivore.default_one(i);
         self.movement_force.default_one(i);
@@ -247,6 +243,7 @@ impl Genome {
     #[inline(always)]
     pub fn normilize_one(&mut self, i: usize) {
         let arr = [
+            &mut self.live_regen_rate[i],
             &mut self.photosynth[i],
             &mut self.carnivore[i],
             &mut self.movement_force[i],
@@ -256,6 +253,16 @@ impl Genome {
         let sum = arr.iter().map(|v| **v).sum::<f32>();
         for number in arr {
             *number /= sum;
+        }
+    }
+
+    pub fn into_iter(&self) -> std::ops::Range<usize> {
+        0..self.length
+    }
+
+    pub fn normilize(&mut self) {
+        for i in self.into_iter() {
+            self.normilize_one(i)
         }
     }
 }
