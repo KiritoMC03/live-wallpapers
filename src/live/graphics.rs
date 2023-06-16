@@ -1,7 +1,6 @@
 use winapi::shared::windef::HDC;
 use winapi::um::winuser::{RedrawWindow, RDW_INVALIDATE};
 use super::app::AppData;
-use super::bacteries::Bacteries;
 
 use live_wallpapers::{PAINTSTRUCT, MSG, null_mut, HWND};
 use live_wallpapers::drawing::colors::{
@@ -60,36 +59,22 @@ pub fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
 
     let bac = &app.live_data.bacteries;
 
-    let green = winapi::um::wingdi::RGB(10, 180, 10);
-    let red = winapi::um::wingdi::RGB(180, 10, 10);
+    let colors = [
+        RGB::new(10, 180, 10),
+        RGB::new(180, 10, 10),
+    ];
 
-//    let (brush, old_brush) = change_solid_brush(frame.hdc, green);
-//    for i in bac.into_iter() {
-//        if bac.genome.photosynth[i] > bac.genome.carnivore[i] {
-//            if bac.is_alive(i) {
-//                let pos = bac.pos[i];
-//                draw_circle(frame.hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
-//            }
-//        }
-//    }
-//    revert_brush(frame.hdc, brush, old_brush);
+    for i in bac.into_iter() {
+        if bac.is_alive(i) {
+            let val = (0.5 - bac.genome.photosynth[i] / 2.0 + bac.genome.carnivore[i] / 2.0).clamp(0.0, 9.9);
+            let col = interpolate_colors(&colors, val);
+            let (brush, old_brush) = change_solid_brush(frame.hdc, col);
+            let pos = bac.pos[i];
+            draw_circle(frame.hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
+            revert_brush(frame.hdc, brush, old_brush);
+        }
 
-    paint_bacteries(frame.hdc, bac, |i| { bac.genome.photosynth[*i] > bac.genome.carnivore[*i]  }, green);
-    paint_bacteries(frame.hdc, bac, |i| { bac.genome.photosynth[*i] < bac.genome.carnivore[*i]  }, red);
+    }
 
     close_draw_frame(hdc, app.width as i32, app.height as i32, frame);
-}
-
-fn paint_bacteries<P: FnMut(&usize) -> bool>(hdc: HDC,
-                                             bac: &Bacteries,
-                                             filter: P,
-                                             color: u32) {
-    let (brush, old_brush) = change_solid_brush(hdc, color);
-    for i in bac.into_iter().filter(filter) {
-        if bac.is_alive(i) {
-            let pos = bac.pos[i];
-            draw_circle(hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
-        }
-    }
-    revert_brush(hdc, brush, old_brush);
 }

@@ -4,7 +4,7 @@ use micromath::vector::F32x2;
 use rand::Rng;
 use rapier2d::prelude::*;
 
-use super::bacteries_processing::{ALIVE_TIME, START_ENERGY, DEAD_TIME, GENOME_MUT_RANGE};
+use super::bacteries_processing::{START_ENERGY, DEAD_TIME, GENOME_MUT_RANGE, START_ALIVE_RANGE};
 
 pub struct Collision {
     pub a: usize,
@@ -18,6 +18,8 @@ pub struct Bacteries {
     pub radius: Vec<i32>,
     pub left_time: Vec<f32>,
     pub energy: Vec<f32>,
+    pub parent: Vec<usize>,
+    pub is_parented: Vec<bool>,
     pub rigidbody: Vec<RigidBodyHandle>,
     pub collider: Vec<ColliderHandle>,
     pub genome: Genome,
@@ -66,10 +68,14 @@ impl Bacteries {
             num,
             pos: vec![F32x2::default(); num],
             radius: vec![i32::default(); num],
-            left_time: vec![ALIVE_TIME.start; num],
+            left_time: vec![START_ALIVE_RANGE.start; num],
             energy: vec![START_ENERGY; num],
+            parent: vec![0; num],
+            is_parented: vec![false; num],
+
             rigidbody: Vec::with_capacity(num),
             collider: Vec::with_capacity(num),
+
             genome: Genome::new(num),
         };
 
@@ -84,8 +90,12 @@ impl Bacteries {
             radius: vec![],
             left_time: vec![],
             energy: vec![],
+            parent: vec![],
+            is_parented: vec![],
+
             rigidbody: vec![],
             collider: vec![],
+
             genome: Genome::empty(),
         };
 
@@ -97,7 +107,7 @@ impl Bacteries {
         let mut result = Bacteries::new(capacity);
 
         for i in 0..num {
-            result.left_time[i] = rand_ranged_f32(ALIVE_TIME);
+            result.left_time[i] = rand_ranged_f32(START_ALIVE_RANGE);
             result.pos.push(rand_range_vec2(x.clone(), y.clone()));
         }
 
@@ -119,7 +129,6 @@ impl Bacteries {
             let rb = RigidBodyBuilder::dynamic()
                 .enabled(self.is_alive(self.rigidbody.len()))
                 .gravity_scale(0.0)
-                .ccd_enabled(true)
                 .position(Isometry::new(vector![pos.x, pos.y], 0.0))
                 .build();
             self.rigidbody.push(rigidbody_set.insert(rb));
@@ -137,6 +146,8 @@ impl Bacteries {
                 let collider = ColliderBuilder::ball(radius)
                     .mass(4.0/3.0 * PI * radius * radius)
                     .user_data(i as u128)
+                    .active_collision_types(ActiveCollisionTypes::all())
+                    .active_events(ActiveEvents::COLLISION_EVENTS)
                     .build();
                 let rb = self.rigidbody[i];
                 self.collider.push(colliders_set.insert_with_parent(collider, rb, rigidbody_set));
@@ -203,6 +214,7 @@ impl Genome {
         self.carnivore[to] = self.carnivore[from] * rand_ranged_f32(GENOME_MUT_RANGE);
         self.movement_force[to] = self.movement_force[from] * rand_ranged_f32(GENOME_MUT_RANGE);
         self.movement_rate[to] = self.movement_rate[from] * rand_ranged_f32(GENOME_MUT_RANGE);
+        self.normilize_one(to);
     }
 
     pub fn into_iter(&self) -> std::ops::Range<usize> {

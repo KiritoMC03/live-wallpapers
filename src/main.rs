@@ -1,3 +1,5 @@
+use live::bacteries::rand_range_vec2;
+use live::bacteries::rand_ranged_i32;
 //#![windows_subsystem = "windows"]
 use rand::Rng;
 use rapier2d::prelude::*;
@@ -26,7 +28,7 @@ fn main() {
 
     let app = mut_app_data();
     app.build_physics();
-    app.spawn_bacteries(8..16);
+    app.spawn_bacteries(RADIUS_RANGE);
     app.live_data.bacteries.genome.fill_default();
     app.with_edges(100.0, 100.0);
 
@@ -49,6 +51,10 @@ fn loop_frames(delay: u64, app: &mut AppData, window_handle: HWND) {
     loop { // ToDo: stop on app close
         let frame_start = std::time::Instant::now();
 
+        if app.frame_num % 100 == 0 {
+            let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
+            app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
+        }
         physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
         graphics_pipeline.step(msg, app, window_handle);
         process_bacteries(app);
