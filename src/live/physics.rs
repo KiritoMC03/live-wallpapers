@@ -13,7 +13,61 @@ pub struct PhysicsData {
     multibody_joints: MultibodyJointSet,
     ccd_solver: CCDSolver,
     hooks: (),
-    events: (),
+    pub events: CollisionHandler,
+}
+
+#[derive(Default)]
+pub struct CollisionHandler {
+    pub collisions: Option<Vec<CollisionEvent>>,
+}
+
+impl EventHandler for CollisionHandler {
+    fn handle_collision_event(
+        &self,
+        _bodies: &RigidBodySet,
+        _colliders: &ColliderSet,
+        event: CollisionEvent,
+        _contact_pair: Option<&ContactPair>,
+    ) {
+        let ptr = self as *const CollisionHandler as *mut CollisionHandler;
+        unsafe {
+            match &mut (*ptr).collisions {
+                Some(vec) => vec.push(event),
+                None => {
+                    (*ptr).collisions = Some(vec![event]);
+                }
+            }
+        }
+    }
+
+    fn handle_contact_force_event(
+        &self,
+        _dt: Real,
+        _bodies: &RigidBodySet,
+        _colliders: &ColliderSet,
+        _contact_pair: &ContactPair,
+        _total_force_magnitude: Real,
+    ) {
+        todo!()
+    }
+}
+
+impl PhysicsData {
+    pub fn get_rb(&mut self, handle: RigidBodyHandle) -> &RigidBody {
+        self.bodies.get(handle).unwrap()
+    }
+
+    pub fn get_rb_mut(&mut self, handle: RigidBodyHandle) -> &mut RigidBody {
+        self.bodies.get_mut(handle).unwrap()
+    }
+
+    pub fn get_coll(&mut self, handle: ColliderHandle) -> &Collider {
+        self.colliders.get(handle).unwrap()
+    }
+
+    pub fn get_coll_mut(&mut self, handle: ColliderHandle) -> &mut Collider {
+        self.colliders.get_mut(handle).unwrap()
+    }
 }
 
 pub fn create_pipeline(rigidbody_set: RigidBodySet, collider_set: ColliderSet) -> PhysicsData {
@@ -29,7 +83,7 @@ pub fn create_pipeline(rigidbody_set: RigidBodySet, collider_set: ColliderSet) -
         multibody_joints: MultibodyJointSet::new(),
         ccd_solver: CCDSolver::new(),
         hooks: (),
-        events: (),
+        events: CollisionHandler { collisions: Some(Vec::new()) },
     }
 }
 

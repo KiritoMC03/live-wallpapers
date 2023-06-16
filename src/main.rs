@@ -14,7 +14,7 @@ use live_wallpapers::*;
 use live::app::*;
 use live::physics::*;
 use live::graphics::*;
-use live::genome_processing::*;
+use live::bacteries_processing::*;
 
 pub mod live;
 
@@ -28,13 +28,12 @@ fn main() {
     app.build_physics();
     app.spawn_bacteries(8..16);
     app.live_data.bacteries.genome.fill_default();
-    app.live_data.bacteries.genome.normilize();
     app.with_edges(100.0, 100.0);
 
     for i in app.live_data.bacteries.into_iter() {
         let x = rand::thread_rng().gen_range(-100..100) as f32;
         let y = rand::thread_rng().gen_range(-100..100) as f32;
-        app.physics_data.bodies.get_mut(app.live_data.bacteries.rigidbody[i]).unwrap().set_linvel(Vector2::new(x, y), true);
+        app.live_data.physics_data.get_rb_mut(app.live_data.bacteries.rigidbody[i]).set_linvel(Vector2::new(x, y), true);
     }
 
     let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
@@ -50,9 +49,9 @@ fn loop_frames(delay: u64, app: &mut AppData, window_handle: HWND) {
     loop { // ToDo: stop on app close
         let frame_start = std::time::Instant::now();
 
-        physics_step(&mut physics_pipeline, &mut app.physics_data);
+        physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
         graphics_pipeline.step(msg, app, window_handle);
-        process_genome(app);
+        process_bacteries(app);
 
         let elapsed = frame_start.elapsed().as_micros();
         if (elapsed as u64) < delay {

@@ -4,7 +4,7 @@ use live_wallpapers::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 use once_cell::sync::Lazy;
 use rapier2d::prelude::{RigidBodySet, ColliderSet};
 
-use super::{LiveData, physics::{PhysicsData, create_pipeline, create_edges}, bacteries::Bacteries};
+use super::{LiveData, physics::{create_pipeline, create_edges}, bacteries::Bacteries};
 
 pub static mut APP_DATA : Lazy::<AppData> = AppData::lazy();
 
@@ -17,7 +17,6 @@ pub struct AppData {
     pub delta_time: f32,
     pub bg_progress: u128,
     pub live_data: LiveData,
-    pub physics_data: PhysicsData,
 }
 
 impl AppData {
@@ -30,7 +29,6 @@ impl AppData {
             delta_time: 0.016666,
             bg_progress: 0,
             live_data: LiveData::default(),
-            physics_data: Default::default(),
         }
     }
 
@@ -43,20 +41,20 @@ impl AppData {
         let collider_set = ColliderSet::new();
         
         let physics_data = create_pipeline(rigidbody_set, collider_set);
-        self.physics_data = physics_data;
+        self.live_data.physics_data = physics_data;
     }
     
     pub fn spawn_bacteries(&mut self, radius: Range<i32>) {
-        self.live_data.bacteries = Bacteries::rand_in_rect(300, 0.0, self.width as f32, 0.0, self.height as f32);
+        self.live_data.bacteries = Bacteries::rand_in_rect(300, 1500, 0.0..self.width as f32, 0.0..self.height as f32);
         self.live_data.bacteries.set_random_radius(radius.start, radius.end);
-        self.live_data.bacteries.actualize_rigidbodies(&mut self.physics_data.bodies);
-        self.live_data.bacteries.actualize_colliders(&mut self.physics_data.colliders, &mut self.physics_data.bodies);
+        self.live_data.bacteries.actualize_rigidbodies(&mut self.live_data.physics_data.bodies);
+        self.live_data.bacteries.actualize_colliders(&mut self.live_data.physics_data.colliders, &mut self.live_data.physics_data.bodies);
     }
     
     pub fn with_edges(&mut self, edge_width: f32, edge_height: f32) {
         create_edges(self.width as f32, self.height as f32, edge_width, edge_height,
-            &mut self.physics_data.bodies,
-            &mut self.physics_data.colliders);
+            &mut self.live_data.physics_data.bodies,
+            &mut self.live_data.physics_data.colliders);
     }
 }
 
