@@ -68,7 +68,7 @@ impl Bacteries {
             num,
             pos: vec![F32x2::default(); num],
             radius: vec![i32::default(); num],
-            left_time: vec![START_ALIVE_RANGE.start; num],
+            left_time: vec![0.0; num],
             energy: vec![START_ENERGY; num],
             parent: vec![0; num],
             is_parented: vec![false; num],
