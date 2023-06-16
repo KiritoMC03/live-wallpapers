@@ -18,13 +18,19 @@ use winapi::um::winuser::{
 
 use winapi::shared::windef::{
     HDC,
-    COLORREF, HBITMAP, RECT, HBRUSH,
+    COLORREF, HBITMAP, RECT, HBRUSH, HPEN, HGDIOBJ,
 };
 
 pub struct DrawFrameData {
     pub hdc: HDC,
     h_bmp_mem: HBITMAP,
     h_old_bmp_mem: HBITMAP,
+}
+
+pub struct DrawLinesData {
+    hdc: HDC,
+    pen: HPEN,
+    old_pen: HGDIOBJ,
 }
 
 /// Return (brush, old_brush)
@@ -61,13 +67,24 @@ pub fn close_draw_frame(hdc: HDC, width: i32, height: i32, draw_frame_data: Draw
     }
 }
 
-pub fn draw_line(hdc: HDC, from: (i32, i32), to: (i32, i32), color: u32) {
+pub fn open_draw_lines(hdc: HDC, color: COLORREF) -> DrawLinesData {
     let pen = unsafe { CreatePen(PS_SOLID as i32, 2, color) };
     let old_pen = unsafe { SelectObject(hdc, pen as _) };
+    DrawLinesData {
+        hdc,
+        pen,
+        old_pen,
+    }
+}
+
+pub fn draw_line(hdc: HDC, from: (i32, i32), to: (i32, i32)) {
     unsafe { MoveToEx(hdc, from.0, from.1, null_mut()) };
     unsafe { LineTo(hdc, to.0, to.1) };
-    unsafe { SelectObject(hdc, old_pen) };
-    unsafe { DeleteObject(pen as _) };
+}
+
+pub fn close_draw_lines(data: DrawLinesData) {
+    unsafe { SelectObject(data.hdc, data.old_pen) };
+    unsafe { DeleteObject(data.pen as _) };
 }
 
 /// Use current selected brush

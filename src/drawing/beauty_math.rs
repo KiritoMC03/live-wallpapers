@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 use winapi::shared::windef::HDC;
 
-use super::primitives::draw_line;
+use super::primitives::{draw_line, open_draw_lines, close_draw_lines};
 
 static mut ORIG_X: f64 = 0.0;
 static mut ORIG_Y: f64 = 0.0;
@@ -61,6 +61,7 @@ impl Galaxy {
 pub fn draw_galaxy_step_inc(hdc: HDC, galaxy: &mut Galaxy) {
     let mut prev_x = 0.0;
     let mut prev_y = 0.0;
+    let draw_lines_data = open_draw_lines(hdc, galaxy.color);
     for curv_step in (0..galaxy.curvature).rev() {
         if galaxy.diameter > galaxy.max_diameter || galaxy.is_max_radius {
             if !galaxy.is_max_radius {
@@ -89,13 +90,14 @@ pub fn draw_galaxy_step_inc(hdc: HDC, galaxy: &mut Galaxy) {
             let cur_y = h_delta * galaxy.theta.sin() - galaxy.diameter * q.sin() + (ORIG_Y + (galaxy.y - ORIG_Y) * curvature);
 
             if prev_x != 0.0 {
-                draw_line(hdc, (prev_x as i32, prev_y as i32), (cur_x as i32, cur_y as i32), galaxy.color);
+                draw_line(hdc, (prev_x as i32, prev_y as i32), (cur_x as i32, cur_y as i32));
             }
 
             prev_x = cur_x;
             prev_y = cur_y;
         }
     }
+    close_draw_lines(draw_lines_data);
     unsafe {
         ORIG_X = galaxy.x;
         ORIG_Y = galaxy.y;
@@ -103,49 +105,49 @@ pub fn draw_galaxy_step_inc(hdc: HDC, galaxy: &mut Galaxy) {
 }
 
 /// Not support multithread now
-pub fn draw_galaxy_step(hdc: HDC, galaxy: &mut Galaxy) {
-    let mut prev_x = 0.0;
-    let mut prev_y = 0.0;
-    for curv_step in (0..galaxy.curvature).rev() {
-        if galaxy.diameter > galaxy.max_diameter || galaxy.is_max_radius {
-            if !galaxy.is_max_radius {
-                galaxy.is_max_radius = true;
-            }
-            if galaxy.diameter < 0.1 {
-                galaxy.is_max_radius = false;
-            }
-            galaxy.theta -= galaxy.theta_step;
-            galaxy.diameter -= 0.1;
-        }
-
-        if !galaxy.is_max_radius {
-            galaxy.theta += galaxy.theta_step;
-            galaxy.diameter += 0.1;
-        }
-
-        let hx = galaxy.hptr_x;
-        let hy = galaxy.hptr_y;
-        let q = (hx / hy - 1.0) * galaxy.theta; // create hypotrochoid
-
-        unsafe{
-            let curvature = curv_step as f64 / galaxy.curvature as f64;
-            let h_delta = hx - hy;
-            let cur_x = h_delta * galaxy.theta.cos() + galaxy.diameter * q.cos() + (ORIG_X + (galaxy.x - ORIG_X) * curvature) - h_delta;
-            let cur_y = h_delta * galaxy.theta.sin() - galaxy.diameter * q.sin() + (ORIG_Y + (galaxy.y - ORIG_Y) * curvature);
-
-            if prev_x != 0.0 {
-                draw_line(hdc, (prev_x as i32, prev_y as i32), (cur_x as i32, cur_y as i32), galaxy.color);
-            }
-
-            prev_x = cur_x;
-            prev_y = cur_y;
-        }
-    }
-    unsafe {
-        ORIG_X = galaxy.x;
-        ORIG_Y = galaxy.y;
-    };
-}
+//pub fn draw_galaxy_step(hdc: HDC, galaxy: &mut Galaxy) {
+//    let mut prev_x = 0.0;
+//    let mut prev_y = 0.0;
+//    for curv_step in (0..galaxy.curvature).rev() {
+//        if galaxy.diameter > galaxy.max_diameter || galaxy.is_max_radius {
+//            if !galaxy.is_max_radius {
+//                galaxy.is_max_radius = true;
+//            }
+//            if galaxy.diameter < 0.1 {
+//                galaxy.is_max_radius = false;
+//            }
+//            galaxy.theta -= galaxy.theta_step;
+//            galaxy.diameter -= 0.1;
+//        }
+//
+//        if !galaxy.is_max_radius {
+//            galaxy.theta += galaxy.theta_step;
+//            galaxy.diameter += 0.1;
+//        }
+//
+//        let hx = galaxy.hptr_x;
+//        let hy = galaxy.hptr_y;
+//        let q = (hx / hy - 1.0) * galaxy.theta; // create hypotrochoid
+//
+//        unsafe{
+//            let curvature = curv_step as f64 / galaxy.curvature as f64;
+//            let h_delta = hx - hy;
+//            let cur_x = h_delta * galaxy.theta.cos() + galaxy.diameter * q.cos() + (ORIG_X + (galaxy.x - ORIG_X) * curvature) - h_delta;
+//            let cur_y = h_delta * galaxy.theta.sin() - galaxy.diameter * q.sin() + (ORIG_Y + (galaxy.y - ORIG_Y) * curvature);
+//
+//            if prev_x != 0.0 {
+//                draw_line(hdc, (prev_x as i32, prev_y as i32), (cur_x as i32, cur_y as i32), galaxy.color);
+//            }
+//
+//            prev_x = cur_x;
+//            prev_y = cur_y;
+//        }
+//    }
+//    unsafe {
+//        ORIG_X = galaxy.x;
+//        ORIG_Y = galaxy.y;
+//    };
+//}
 
 //---------------------------------------------------------------------------------------------------------------------------
 

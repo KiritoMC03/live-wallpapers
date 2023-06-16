@@ -35,6 +35,9 @@ pub const CARNIVORE_COST : f32 = 0.3;
 pub const GENOME_MUT_RANGE : Range<f32> = 0.9..1.1;
 pub const RADIUS_MUT_RANGE : Range<f32> = 0.9..1.1;
 
+pub const FLAGELLA_NUM_RANGE : Range<i32> = 6..24;
+pub const FLAGELLA_LEN_RANGE : Range<i32> = 2..8;
+
 pub fn process_bacteries(app: &mut AppData) {
     process_alive(app);
     process_movement(app);

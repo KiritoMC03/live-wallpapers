@@ -1,6 +1,7 @@
+//#![windows_subsystem = "windows"]
+
 use live::bacteries::rand_range_vec2;
 use live::bacteries::rand_ranged_i32;
-//#![windows_subsystem = "windows"]
 use rand::Rng;
 use rapier2d::prelude::*;
 
