@@ -74,17 +74,10 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
         RGB::new(180, 10, 10),
         ];
 
-    let flagella_col = winapi::um::wingdi::RGB(0, 0, 0);
-
-
-    let draw_lines_data = create_solid_pen(hdc, flagella_col);
-
-    let a = std::time::Instant::now();
-    paint_flagella(hdc, &bac);
-    println!("flagella: {}", a.elapsed().as_millis());
-
-
-    close_draw_lines(draw_lines_data);
+//    let flagella_col = winapi::um::wingdi::RGB(0, 0, 0);
+//    let draw_lines_data = create_solid_pen(hdc, flagella_col);
+//    paint_flagella(hdc, &bac);
+//    close_draw_lines(draw_lines_data);
 
     let a = std::time::Instant::now();
     for i in bac.into_iter() {
@@ -93,7 +86,7 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
             let col = interpolate_colors(&colors, val);
             let (brush, old_brush) = change_solid_brush(hdc, col);
             let pos = bac.pos[i];
-//            draw_circle(hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
+            draw_circle(hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
             revert_brush(hdc, brush, old_brush);
         }
     }
@@ -107,12 +100,8 @@ fn paint_flagella(hdc: HDC, bac: &Bacteries) {
     let mut poly_points = Vec::with_capacity(505 + FLAGELLA_NUM_RANGE.end as usize / 2);
     let mut total_num_flagella = 0u32;
 
-    let a = std::time::Instant::now();
-    let mut bac_num = 0;
-
     for i in bac.into_iter() {
         if bac.is_alive(i) {
-            bac_num += 1;
             let len = (FLAGELLA_LEN_RANGE.start as f32 + (FLAGELLA_LEN_RANGE.end - FLAGELLA_LEN_RANGE.start) as f32 * bac.genome.movement_force[i]).round();
             let mut num_flagella = (FLAGELLA_NUM_RANGE.start as f32 + (FLAGELLA_NUM_RANGE.end - FLAGELLA_NUM_RANGE.start) as f32 * bac.genome.movement_rate[i]).round() as u32;
             if num_flagella % 2 == 1 && num_flagella > 0 {
@@ -138,31 +127,22 @@ fn paint_flagella(hdc: HDC, bac: &Bacteries) {
                 let y2 = (c.y + r * back_angle.sin()) as i32;
                 pts.push(Point { x: x1, y: y1 });
                 pts.push(Point { x: x2, y: y2 });
+                poly_points.push(2);
             }
 
-            poly_points.push(2);
-//            if total_num_flagella >= 500 {
-//                println!("inner: {} - {} - {} - {}", bac_num, pts.len(), poly_points.len(), total_num_flagella);
-////                paint(hdc, &pts, &poly_points, total_num_flagella);
-//                unsafe { winapi::um::wingdi::PolyPolyline(hdc, pts.as_ptr(), poly_points.as_ptr(), total_num_flagella) };
-//
-//                pts.clear();
-//                poly_points.clear();
-//                total_num_flagella = 0u32;
-//            }
+            if total_num_flagella >= 200 {
+                paint(hdc, &pts, &poly_points, total_num_flagella);
+
+                pts.clear();
+                poly_points.clear();
+                total_num_flagella = 0u32;
+            }
         }
     }
 
-    println!("for flag: {}", a.elapsed().as_millis());
-    println!("pre: {} - {} - {} - {}", bac_num, pts.len(), poly_points.len(), total_num_flagella);
-    println!("pre: {} - {} - {} - {}", bac_num, pts.capacity(), poly_points.capacity(), total_num_flagella);
+    paint(hdc, &pts, &poly_points, total_num_flagella);
 
-    unsafe { winapi::um::wingdi::PolyPolyline(hdc, pts.as_ptr(), poly_points.as_ptr(), total_num_flagella) };
-//    paint(hdc, &pts, &poly_points, total_num_flagella);
-
-//    fn paint(hdc: HDC, pts: &Vec<Point>, poly_points: &Vec<u32>, total_num_flagella: u32) {
-//        unsafe {
-//            winapi::um::wingdi::PolyPolyline(hdc, pts.as_ptr(), poly_points.as_ptr(), total_num_flagella);
-//        };
-//    }
+    fn paint(hdc: HDC, pts: &Vec<Point>, poly_points: &Vec<u32>, total_num_flagella: u32) {
+        unsafe { winapi::um::wingdi::PolyPolyline(hdc, pts.as_ptr(), poly_points.as_ptr(), total_num_flagella) };
+    }
 }
