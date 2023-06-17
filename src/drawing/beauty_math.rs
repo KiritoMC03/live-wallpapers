@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 use winapi::shared::windef::HDC;
 
-use super::primitives::{draw_line, open_draw_lines, close_draw_lines};
+use super::primitives::{draw_line, create_solid_pen, close_draw_lines};
 
 static mut ORIG_X: f64 = 0.0;
 static mut ORIG_Y: f64 = 0.0;
@@ -61,7 +61,7 @@ impl Galaxy {
 pub fn draw_galaxy_step_inc(hdc: HDC, galaxy: &mut Galaxy) {
     let mut prev_x = 0.0;
     let mut prev_y = 0.0;
-    let draw_lines_data = open_draw_lines(hdc, galaxy.color);
+    let draw_lines_data = create_solid_pen(hdc, galaxy.color);
     for curv_step in (0..galaxy.curvature).rev() {
         if galaxy.diameter > galaxy.max_diameter || galaxy.is_max_radius {
             if !galaxy.is_max_radius {

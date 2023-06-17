@@ -27,7 +27,7 @@ pub struct DrawFrameData {
     h_old_bmp_mem: HBITMAP,
 }
 
-pub struct DrawLinesData {
+pub struct SolidPenData {
     hdc: HDC,
     pen: HPEN,
     old_pen: HGDIOBJ,
@@ -67,10 +67,10 @@ pub fn close_draw_frame(hdc: HDC, width: i32, height: i32, draw_frame_data: Draw
     }
 }
 
-pub fn open_draw_lines(hdc: HDC, color: COLORREF) -> DrawLinesData {
+pub fn create_solid_pen(hdc: HDC, color: COLORREF) -> SolidPenData {
     let pen = unsafe { CreatePen(PS_SOLID as i32, 2, color) };
     let old_pen = unsafe { SelectObject(hdc, pen as _) };
-    DrawLinesData {
+    SolidPenData {
         hdc,
         pen,
         old_pen,
@@ -82,7 +82,7 @@ pub fn draw_line(hdc: HDC, from: (i32, i32), to: (i32, i32)) {
     unsafe { LineTo(hdc, to.0, to.1) };
 }
 
-pub fn close_draw_lines(data: DrawLinesData) {
+pub fn close_draw_lines(data: SolidPenData) {
     unsafe { SelectObject(data.hdc, data.old_pen) };
     unsafe { DeleteObject(data.pen as _) };
 }
