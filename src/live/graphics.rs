@@ -18,7 +18,7 @@ use live_wallpapers::drawing::primitives::{
     change_solid_brush,
     draw_circle,
     revert_brush,
-    close_draw_frame, draw_line, create_solid_pen, close_draw_lines
+    close_draw_frame
 };
 
 pub struct GraphicsPipeline<T: Fn(MSG) -> bool> {
@@ -32,17 +32,22 @@ impl<T: Fn(MSG) -> bool> GraphicsPipeline<T> {
         }
     }
 
-    pub fn step(&self, msg: MSG, app: &AppData, window_handle: HWND) {
-        if (self.messages_handler)(msg) { }
+    pub fn step(&self, msg: MSG, app: &AppData, window_handle: HWND) -> bool {
+        if (self.messages_handler)(msg) {
+            return true
+        }
         else if !app.frame_processed {
             unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), RDW_INVALIDATE); }
+            return false
         }
+
+        unreachable!()
     }
 }
 
 pub fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
     let colors = [
-        RGB::new(226, 239, 84),
+        RGB::new(70, 70, 70),
         RGB::new(255, 92, 102),
         RGB::new(98, 72, 213),
         RGB::new(226, 239, 84),
@@ -79,7 +84,6 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
 //    paint_flagella(hdc, &bac);
 //    close_draw_lines(draw_lines_data);
 
-    let a = std::time::Instant::now();
     for i in bac.into_iter() {
         if bac.is_alive(i) {
             let val = (0.5 - bac.genome.photosynth[i] / 2.0 + bac.genome.carnivore[i] / 2.0).clamp(0.0, 9.9);
@@ -90,7 +94,6 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
             revert_brush(hdc, brush, old_brush);
         }
     }
-    println!("bacteries: {}", a.elapsed().as_millis());
 }
 
 #[inline(always)]

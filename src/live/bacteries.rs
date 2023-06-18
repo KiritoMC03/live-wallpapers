@@ -129,7 +129,6 @@ impl Bacteries {
             let pos = self.pos[self.rigidbody.len()];
             let rb = RigidBodyBuilder::dynamic()
                 .enabled(self.is_alive(self.rigidbody.len()))
-                .gravity_scale(0.0)
                 .position(Isometry::new(vector![pos.x, pos.y], 0.0))
                 .build();
             self.rigidbody.push(rigidbody_set.insert(rb));
@@ -147,7 +146,6 @@ impl Bacteries {
                 let collider = ColliderBuilder::ball(radius)
                     .mass(4.0/3.0 * PI * radius * radius)
                     .user_data(i as u128)
-                    .active_collision_types(ActiveCollisionTypes::all())
                     .active_events(ActiveEvents::COLLISION_EVENTS)
                     .build();
                 let rb = self.rigidbody[i];

@@ -2,7 +2,7 @@ use micromath::vector::F32x2;
 
 use crate::live::{bacteries::rand_ranged_f32, bacteries_processing::RADIUS_MUT_RANGE};
 
-use self::{physics::PhysicsData, bacteries_processing::{RADIUS_RANGE, START_ALIVE_RANGE}};
+use self::{physics::PhysicsData, bacteries_processing::{RADIUS_RANGE, START_ALIVE_RANGE}, bacteries::rand_range_vec2};
 use rapier2d::prelude::*;
 
 pub mod app;
@@ -44,7 +44,7 @@ impl LiveData {
                 let pos = self.bacteries.pos[src];
                 let mut radius = (self.bacteries.radius[src] as f32 * rand_ranged_f32(RADIUS_MUT_RANGE)) as i32;
                 radius = radius.clamp(RADIUS_RANGE.start, RADIUS_RANGE.end);
-                self.bacteries.pos[i] = pos;
+                self.bacteries.pos[i] = pos + rand_range_vec2(-0.1..0.1, -0.1..0.1);
                 self.bacteries.radius[i] = radius;
                 self.bacteries.left_time[i] = rand_ranged_f32(START_ALIVE_RANGE);
                 self.bacteries.parent[i] = src;

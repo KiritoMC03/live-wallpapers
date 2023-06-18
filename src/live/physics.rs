@@ -32,7 +32,9 @@ impl EventHandler for CollisionHandler {
         let ptr = self as *const CollisionHandler as *mut CollisionHandler;
         unsafe {
             match &mut (*ptr).collisions {
-                Some(vec) => vec.push(event),
+                Some(vec) => {
+                    vec.push(event);
+                }
                 None => {
                     (*ptr).collisions = Some(vec![event]);
                 }

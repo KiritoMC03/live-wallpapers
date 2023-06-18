@@ -16,7 +16,7 @@ pub const MOVE_RATE_SENS : i32 = 1000;
 pub const MOVE_FORCE : f32 = 100.0;
 pub const VEL_RANGE : Range<f32> = -1.0..1.0;
 
-pub const RADIUS_RANGE : Range<i32> = 4..14;
+pub const RADIUS_RANGE : Range<i32> = 8..20;
 
 pub const MAX_ALIVE : f32 = 100.0;
 pub const START_ALIVE_RANGE : Range<f32> = 1.0..100.0;
@@ -27,10 +27,10 @@ pub const DIVISION_ENERGY : f32 = 10.0;
 pub const ALIVE_TO_ENERGY_COEF : f32 = 0.1;
 pub const ALIVE_REGEN_RATE_SENS : i32 = 100;
 
-pub const PHOTOSYNTH : f32 = 0.01;
-pub const CARNIVORE_RATE : f32 = 14.0;
+pub const PHOTOSYNTH : f32 = 0.02;
+pub const CARNIVORE_RATE : f32 = 10.0;
 pub const CARNIVORE_DAMAGE : f32 = 4.0;
-pub const CARNIVORE_COST : f32 = 0.3;
+pub const CARNIVORE_COST : f32 = 20.0;
 
 pub const GENOME_MUT_RANGE : Range<f32> = 0.9..1.1;
 pub const RADIUS_MUT_RANGE : Range<f32> = 0.9..1.1;
@@ -127,18 +127,12 @@ fn process_carnivore(app: &mut AppData, a: usize, b: usize) {
     let bac = &mut app.live_data.bacteries;
     let cav_a = bac.genome.carnivore[a];
     let cav_b = bac.genome.carnivore[b];
-    //    let asp = cav_a / cav_b;
-    //    if asp > 2.0 && cav_a > 0.5 {
-    //        println!("ARGG {a}, enerty: {}", bac.energy[a]);
-    //    }
-    //    else if 1.0 / asp > 2.0 && cav_b > 0.5 {
-    //        println!("ARGG {b}, enerty: {}", bac.energy[b]);
-    //    }
+
     bac.left_time[a] -= (CARNIVORE_DAMAGE * (cav_b - cav_a).clamp(0.0, f32::MAX)) * app.delta_time;
     bac.left_time[b] -= (CARNIVORE_DAMAGE * (cav_a - cav_b).clamp(0.0, f32::MAX)) * app.delta_time;
 
-    bac.energy[a] += (CARNIVORE_RATE - CARNIVORE_COST) * cav_a * app.delta_time;
-    bac.energy[b] += (CARNIVORE_RATE - CARNIVORE_COST) * cav_b * app.delta_time;
+    bac.energy[a] += (CARNIVORE_RATE * CARNIVORE_RATE - CARNIVORE_COST) * cav_a * app.delta_time;
+    bac.energy[b] += (CARNIVORE_RATE * CARNIVORE_RATE - CARNIVORE_COST) * cav_b * app.delta_time;
 }
 
 fn process_division(app: &mut AppData) {
