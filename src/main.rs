@@ -24,12 +24,19 @@ use live::bacteries_processing::*;
 pub mod live;
 
 fn main() {
-    unsafe {
-        SetProcessDPIAware();
-        APP_DATA = AppData::lazy();
-    }
+    unsafe { SetProcessDPIAware(); }
 
-    let mut app_mutex = mut_app_data();
+    build_app();
+    let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
+    let delay = 1_000_000 / 80;
+
+    loop_logic(delay);
+    loop_graphics(delay, &mut mut_app_data(), window_handle);
+}
+
+fn build_app() {
+    unsafe { APP_DATA = AppData::lazy() };
+    let app_mutex = mut_app_data();
     let mut app = app_mutex.lock().unwrap();
     app.build_physics();
     app.spawn_bacteries(RADIUS_RANGE);
@@ -43,10 +50,25 @@ fn main() {
         app.live_data.physics_data.get_rb_mut(rb).set_linvel(Vector2::new(x, y), true);
     }
     drop(app);
+}
 
-    let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
-    let delay = 1_000_000 / 80;
+fn loop_graphics(delay: u64, app: &mut Mutex<AppData>, window_handle: HWND) {
+    let msg = MSG::default();
+    let graphics_pipeline = GraphicsPipeline::new(handle_window_messages);
 
+    loop { // ToDo: stop on app close
+        let frame_start = std::time::Instant::now();
+
+        if graphics_pipeline.step(msg, app, window_handle) {
+            let elapsed = frame_start.elapsed().as_micros();
+            if (elapsed as u64) < delay {
+                std::thread::sleep(std::time::Duration::from_micros(delay - elapsed as u64));
+            }
+        }
+    }
+}
+
+fn loop_logic(delay: u64) {
     std::thread::spawn(move || {
         let mut physics_pipeline = PhysicsPipeline::new();
         loop {
@@ -59,13 +81,8 @@ fn main() {
             }
 
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
-            //            println!("phys: {}", a.elapsed().as_millis());
-
-
-            //            let a = std::time::Instant::now();
             process_bacteries(&mut app);
             drop(app);
-            //            println!("proc: {}", a.elapsed().as_millis());
 
             let elapsed = frame_start.elapsed().as_micros();
             if (elapsed as u64) < delay {
@@ -73,26 +90,6 @@ fn main() {
             }
         }
     });
-
-    loop_frames(delay, &mut app_mutex, window_handle);
-}
-
-fn loop_frames(delay: u64, app: &mut Mutex<AppData>, window_handle: HWND) {
-    let msg = MSG::default();
-    let graphics_pipeline = GraphicsPipeline::new(handle_window_messages);
-
-    loop { // ToDo: stop on app close
-        let frame_start = std::time::Instant::now();
-
-        let painted = graphics_pipeline.step(msg, app, window_handle);
-        if !painted {
-            continue;
-        }
-        let elapsed = frame_start.elapsed().as_micros();
-        if (elapsed as u64) < delay {
-            std::thread::sleep(std::time::Duration::from_micros(delay - elapsed as u64));
-        }
-    }
 }
 
 fn simulate_frame(hwnd: HWND, app: &mut Mutex<AppData>) {
