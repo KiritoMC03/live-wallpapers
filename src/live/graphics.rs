@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use std::sync::Mutex;
 
 use winapi::shared::windef::HDC;
 use winapi::um::winuser::{RedrawWindow, RDW_INVALIDATE};
@@ -32,13 +33,18 @@ impl<T: Fn(MSG) -> bool> GraphicsPipeline<T> {
         }
     }
 
-    pub fn step(&self, msg: MSG, app: &AppData, window_handle: HWND) -> bool {
+    pub fn step(&self, msg: MSG, app: &Mutex<AppData>, window_handle: HWND) -> bool {
         if (self.messages_handler)(msg) {
             return true
         }
-        else if !app.frame_processed {
-            unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), RDW_INVALIDATE); }
-            return false
+        else {
+            let app = app.lock().unwrap();
+            if !app.frame_processed {
+                drop(app);
+                unsafe { RedrawWindow(window_handle, null_mut(), null_mut(), RDW_INVALIDATE); }
+                return false
+            }
+            drop(app);
         }
 
         unreachable!()

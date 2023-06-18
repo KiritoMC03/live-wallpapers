@@ -1,5 +1,7 @@
 //#![windows_subsystem = "windows"]
 
+use std::sync::Mutex;
+
 use live::bacteries::rand_range_vec2;
 use live::bacteries::rand_ranged_i32;
 use rand::Rng;
@@ -27,7 +29,8 @@ fn main() {
         APP_DATA = AppData::lazy();
     }
 
-    let app = mut_app_data();
+    let mut app_mutex = mut_app_data();
+    let mut app = app_mutex.lock().unwrap();
     app.build_physics();
     app.spawn_bacteries(RADIUS_RANGE);
     app.live_data.bacteries.genome.fill_default();
@@ -36,57 +39,70 @@ fn main() {
     for i in app.live_data.bacteries.into_iter() {
         let x = rand::thread_rng().gen_range(-100..100) as f32;
         let y = rand::thread_rng().gen_range(-100..100) as f32;
-        app.live_data.physics_data.get_rb_mut(app.live_data.bacteries.rigidbody[i]).set_linvel(Vector2::new(x, y), true);
+        let rb = app.live_data.bacteries.rigidbody[i];
+        app.live_data.physics_data.get_rb_mut(rb).set_linvel(Vector2::new(x, y), true);
     }
+    drop(app);
 
     let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
     let delay = 1_000_000 / 80;
-    loop_frames(delay, app, window_handle);
-}
 
-fn loop_frames(delay: u64, app: &mut AppData, window_handle: HWND) {
-    let msg = MSG::default();
-    let mut physics_pipeline = PhysicsPipeline::new();
-    let graphics_pipeline = GraphicsPipeline::new(handle_window_messages);
+    std::thread::spawn(move || {
+        let mut physics_pipeline = PhysicsPipeline::new();
+        loop {
+            let mut app = mut_app_data().lock().unwrap();
+            let frame_start = std::time::Instant::now();
 
-    loop { // ToDo: stop on app close
-        let frame_start = std::time::Instant::now();
+            if app.frame_num % 100 == 0 {
+                let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
+                app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
+            }
 
-        if app.frame_num % 100 == 0 {
-            let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
-            app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
-        }
-
-
-
-//        let a = std::time::Instant::now();
-        let painted = graphics_pipeline.step(msg, app, window_handle);
-//        println!("graph: {}", a.elapsed().as_millis());
-        if painted {
-//            let a = std::time::Instant::now();
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
-//            println!("phys: {}", a.elapsed().as_millis());
+            //            println!("phys: {}", a.elapsed().as_millis());
 
 
-//            let a = std::time::Instant::now();
-            process_bacteries(app);
-//            println!("proc: {}", a.elapsed().as_millis());
+            //            let a = std::time::Instant::now();
+            process_bacteries(&mut app);
+            drop(app);
+            //            println!("proc: {}", a.elapsed().as_millis());
 
             let elapsed = frame_start.elapsed().as_micros();
             if (elapsed as u64) < delay {
                 std::thread::sleep(std::time::Duration::from_micros(delay - elapsed as u64));
             }
         }
+    });
+
+    loop_frames(delay, &mut app_mutex, window_handle);
+}
+
+fn loop_frames(delay: u64, app: &mut Mutex<AppData>, window_handle: HWND) {
+    let msg = MSG::default();
+    let graphics_pipeline = GraphicsPipeline::new(handle_window_messages);
+
+    loop { // ToDo: stop on app close
+        let frame_start = std::time::Instant::now();
+
+        let painted = graphics_pipeline.step(msg, app, window_handle);
+        if !painted {
+            continue;
+        }
+        let elapsed = frame_start.elapsed().as_micros();
+        if (elapsed as u64) < delay {
+            std::thread::sleep(std::time::Duration::from_micros(delay - elapsed as u64));
+        }
     }
 }
 
-fn simulate_frame(hwnd: HWND, app: &mut AppData) {
+fn simulate_frame(hwnd: HWND, app: &mut Mutex<AppData>) {
+    let mut app = app.lock().unwrap();
     if app.frame_processed { return }
     app.frame_processed = true;
 
     let mut ps: PAINTSTRUCT = PAINTSTRUCT::default();
     let hdc = unsafe { BeginPaint(hwnd, &mut ps) };
-    paint_frame(hdc, &ps, app);
+    paint_frame(hdc, &ps, &mut app);
     unsafe { EndPaint(hwnd, &ps) };
 
     app.frame_num += 1;

@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{ops::Range, sync::Mutex};
 
 use live_wallpapers::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 use once_cell::sync::Lazy;
@@ -6,7 +6,7 @@ use rapier2d::prelude::{RigidBodySet, ColliderSet};
 
 use super::{LiveData, physics::{create_pipeline, create_edges}, bacteries::Bacteries};
 
-pub static mut APP_DATA : Lazy::<AppData> = AppData::lazy();
+pub static mut APP_DATA : Lazy::<Mutex<AppData>> = AppData::lazy();
 
 /// Ignore DPI.
 pub struct AppData {
@@ -32,8 +32,8 @@ impl AppData {
         }
     }
 
-    pub const fn lazy() -> Lazy<AppData> {
-        Lazy::new(|| { AppData::new() })
+    pub const fn lazy() -> Lazy<Mutex<AppData>> {
+        Lazy::new(|| { Mutex::new(AppData::new()) })
     }
     
     pub fn build_physics(&mut self) {
@@ -58,10 +58,10 @@ impl AppData {
     }
 }
 
-pub fn ref_app_data() -> &'static AppData {
+pub fn ref_app_data() -> &'static Mutex<AppData> {
     unsafe { &APP_DATA }
 }
 
-pub fn mut_app_data() -> &'static mut AppData {
+pub fn mut_app_data() -> &'static mut Mutex<AppData> {
     unsafe { &mut APP_DATA }
 }
