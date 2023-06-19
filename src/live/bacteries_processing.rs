@@ -5,7 +5,6 @@ use rapier2d::prelude::*;
 use rapier2d::na::Vector2;
 
 use super::bacteries::{
-    rand_ranged_i32,
     rand_range_vec2, rand_ranged_f32,
 };
 

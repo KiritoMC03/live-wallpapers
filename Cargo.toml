@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+csv = "1.2.2"
 micromath = { version = "2.0.0", features = ["vector"] }
 once_cell = "1.18.0"
 rand = "0.8.5"

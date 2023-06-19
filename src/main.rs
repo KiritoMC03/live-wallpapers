@@ -20,6 +20,7 @@ use live::app::*;
 use live::physics::*;
 use live::graphics::*;
 use live::bacteries_processing::*;
+use live::save_load::*;
 
 pub mod live;
 
@@ -82,6 +83,7 @@ fn loop_logic(delay: u64) {
 
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
             process_bacteries(&mut app);
+            try_save(&app);
             drop(app);
 
             let elapsed = frame_start.elapsed().as_micros();
