@@ -6,13 +6,12 @@ use rapier2d::na::Vector2;
 
 use super::bacteries::{
     rand_ranged_i32,
-    rand_range_vec2,
+    rand_range_vec2, rand_ranged_f32,
 };
 
 use super::app::AppData;
 use super::{normalize_f32x2, len_f32x2};
 
-pub const MOVE_RATE_SENS : i32 = 1000;
 pub const MOVE_FORCE : f32 = 100.0;
 pub const VEL_RANGE : Range<f32> = -1.0..1.0;
 
@@ -25,11 +24,10 @@ pub const DEAD_TIME : f32 = 0.0;
 pub const START_ENERGY : f32 = 1.0;
 pub const DIVISION_ENERGY : f32 = 10.0;
 pub const ALIVE_TO_ENERGY_COEF : f32 = 0.1;
-pub const ALIVE_REGEN_RATE_SENS : i32 = 100;
 
 pub const PHOTOSYNTH : f32 = 0.02;
 pub const CARNIVORE_RATE : f32 = 10.0;
-pub const CARNIVORE_DAMAGE : f32 = 4.0;
+pub const CARNIVORE_DAMAGE : f32 = 15.0;
 pub const CARNIVORE_COST : f32 = 20.0;
 
 pub const GENOME_MUT_RANGE : Range<f32> = 0.9..1.1;
@@ -46,6 +44,7 @@ pub fn process_bacteries(app: &mut AppData) {
         process_photosynth(app);
         process_collisions(app);
         process_division(app);
+        process_division_movement(app);
     }
 }
 
@@ -57,9 +56,7 @@ fn process_alive(app: &mut AppData) {
             continue;
         }
 
-        let rate = live.bacteries.genome.live_regen_rate[i] * ALIVE_REGEN_RATE_SENS as f32;
-
-        if rate as i32 > rand_ranged_i32(0..MOVE_RATE_SENS) {
+        if calc_rate(live.bacteries.genome.live_regen_rate[i]){
             if left_time < MAX_ALIVE - ALIVE_TO_ENERGY_COEF {
                 let energy = &mut live.bacteries.energy[i];
                 if *energy > 2.0 {
@@ -85,9 +82,7 @@ fn process_movement(app: &mut AppData) {
             continue;
         }
 
-        let rate = bac.genome.movement_rate[i] * MOVE_RATE_SENS as f32;
-
-        if rate as i32 > rand_ranged_i32(0..MOVE_RATE_SENS) {
+        if calc_rate(bac.genome.movement_rate[i]) {
             let force = bac.genome.movement_force[i] * MOVE_FORCE;
             let vel = rand_range_vec2(VEL_RANGE, VEL_RANGE) * force;
             let vel_vec = Vector2::new(vel.x, vel.y);                
@@ -136,15 +131,19 @@ fn process_carnivore(app: &mut AppData, a: usize, b: usize) {
 }
 
 fn process_division(app: &mut AppData) {
-    for i in app.live_data.bacteries.into_iter() {
-        let live = &mut app.live_data;
-        let energy = &mut live.bacteries.energy[i];
-        if *energy >= DIVISION_ENERGY {
-            *energy -= DIVISION_ENERGY;
-            live.mut_clone(i);
+    let live = &mut app.live_data;
+    for i in live.bacteries.into_iter() {
+        if calc_rate(live.bacteries.genome.division_rate[i]) {
+            let energy = &mut live.bacteries.energy[i];
+            if *energy >= DIVISION_ENERGY {
+                *energy -= DIVISION_ENERGY;
+                live.mut_clone(i);
+            }
         }
     }
+}
 
+fn process_division_movement(app: &mut AppData) {
     let data = &mut app.live_data;
     for i in data.bacteries.into_iter() {
         if !data.bacteries.is_parented[i] { continue; }
@@ -166,4 +165,8 @@ fn process_division(app: &mut AppData) {
             rb.set_enabled(true);
         }
     }
+}
+
+fn calc_rate(rate: f32) -> bool {
+    rate > rand_ranged_f32(0.0..1.0)
 }
