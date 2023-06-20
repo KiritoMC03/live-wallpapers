@@ -103,7 +103,7 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
 }
 
 #[inline(always)]
-fn paint_flagella(hdc: HDC, bac: &Bacteries) {
+pub fn paint_flagella(hdc: HDC, bac: &Bacteries) {
     type Point = winapi::shared::windef::POINT;
     let mut pts = Vec::with_capacity(1005 + FLAGELLA_NUM_RANGE.end as usize);
     let mut poly_points = Vec::with_capacity(505 + FLAGELLA_NUM_RANGE.end as usize / 2);

@@ -4,11 +4,8 @@ use std::ops::Range;
 use rapier2d::prelude::*;
 use rapier2d::na::Vector2;
 
-use super::bacteries::{
-    rand_range_vec2, rand_ranged_f32,
-};
-
 use super::app::AppData;
+use super::utils::{rand_range_vec2, rand_ranged_f32};
 use super::{normalize_f32x2, len_f32x2};
 
 pub const MOVE_FORCE : f32 = 100.0;

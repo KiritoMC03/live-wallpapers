@@ -2,8 +2,6 @@
 
 use std::sync::Mutex;
 
-use live::bacteries::rand_range_vec2;
-use live::bacteries::rand_ranged_i32;
 use rand::Rng;
 use rapier2d::prelude::*;
 
@@ -20,7 +18,6 @@ use live::app::*;
 use live::physics::*;
 use live::graphics::*;
 use live::bacteries_processing::*;
-use live::save_load::*;
 
 pub mod live;
 
@@ -41,7 +38,7 @@ fn build_app() {
     let mut app = app_mutex.lock().unwrap();
     app.build_physics();
     app.spawn_bacteries(RADIUS_RANGE);
-    app.live_data.bacteries.genome.fill_default();
+//    app.live_data.bacteries.genome.fill_default();
     app.with_edges(100.0, 100.0);
 
     for i in app.live_data.bacteries.into_iter() {
@@ -76,14 +73,14 @@ fn loop_logic(delay: u64) {
             let mut app = mut_app_data().lock().unwrap();
             let frame_start = std::time::Instant::now();
 
-            if app.frame_num % 100 == 0 {
-                let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
-                app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
-            }
+//            if app.frame_num % 100 == 0 {
+//                let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
+//                app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
+//            }
 
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
             process_bacteries(&mut app);
-            try_save(&app);
+//            try_save(&app);
             drop(app);
 
             let elapsed = frame_start.elapsed().as_micros();

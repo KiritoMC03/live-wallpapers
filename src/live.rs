@@ -1,16 +1,18 @@
 use micromath::vector::F32x2;
 
-use crate::live::{bacteries::rand_ranged_f32, bacteries_processing::RADIUS_MUT_RANGE};
+use crate::live::{bacteries_processing::RADIUS_MUT_RANGE};
 
-use self::{physics::PhysicsData, bacteries_processing::{RADIUS_RANGE, START_ALIVE_RANGE}, bacteries::rand_range_vec2};
+use self::{physics::PhysicsData, bacteries_processing::{RADIUS_RANGE, START_ALIVE_RANGE}, utils::{rand_ranged_f32, rand_range_vec2}};
 use rapier2d::prelude::*;
 
 pub mod app;
 pub mod physics;
 pub mod graphics;
 pub mod bacteries;
+pub mod genome;
 pub mod bacteries_processing;
 pub mod save_load;
+pub mod utils;
 
 #[derive(Default)]
 pub struct LiveData {
