@@ -24,6 +24,7 @@ pub const ALIVE_TO_ENERGY_COEF : f32 = 0.1;
 pub const PHOTOSYNTH : f32 = 0.02;
 pub const CARNIVORE_RATE : f32 = 10.0;
 pub const CARNIVORE_DAMAGE : f32 = 15.0;
+pub const DEFENCE : f32 = 15.0;
 pub const CARNIVORE_COST : f32 = 20.0;
 
 pub const GENOME_MUT_RANGE : Range<f32> = 0.9..1.1;
@@ -118,9 +119,11 @@ fn process_carnivore(app: &mut AppData, a: usize, b: usize) {
     let bac = &mut app.live_data.bacteries;
     let cav_a = bac.genome.carnivore[a];
     let cav_b = bac.genome.carnivore[b];
+    let dam_for_a = CARNIVORE_DAMAGE - bac.genome.defence[a] * DEFENCE;
+    let dam_for_b = CARNIVORE_DAMAGE - bac.genome.defence[b] * DEFENCE;
 
-    bac.left_time[a] -= (CARNIVORE_DAMAGE * (cav_b - cav_a).clamp(0.0, f32::MAX)) * app.delta_time;
-    bac.left_time[b] -= (CARNIVORE_DAMAGE * (cav_a - cav_b).clamp(0.0, f32::MAX)) * app.delta_time;
+    bac.left_time[a] -= (dam_for_a * (cav_b - cav_a).clamp(0.0, f32::MAX)) * app.delta_time;
+    bac.left_time[b] -= (dam_for_b * (cav_a - cav_b).clamp(0.0, f32::MAX)) * app.delta_time;
 
     bac.energy[a] += (CARNIVORE_RATE * CARNIVORE_RATE - CARNIVORE_COST) * cav_a * app.delta_time;
     bac.energy[b] += (CARNIVORE_RATE * CARNIVORE_RATE - CARNIVORE_COST) * cav_b * app.delta_time;

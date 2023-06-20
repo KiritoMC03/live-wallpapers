@@ -13,6 +13,7 @@ pub struct Genome {
     pub carnivore: Vec<Gen>,
     pub movement_force: Vec<Gen>,
     pub movement_rate: Vec<Gen>,
+    pub defence: Vec<Gen>,
 }
 
 pub trait GenTrait {
@@ -52,6 +53,7 @@ impl Genome {
             carnivore: default_gen(length),
             movement_force: default_gen(length),
             movement_rate: default_gen(length),
+            defence: default_gen(length),
         };
 
         result.normilize();
@@ -68,6 +70,7 @@ impl Genome {
             carnivore: vec![],
             movement_force: vec![],
             movement_rate: vec![],
+            defence: vec![],
         }
     }
 
@@ -107,15 +110,18 @@ impl Genome {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Vec<f32>> {
-        let result = iter::once(&self.live_regen_rate)
-                        .chain(iter::once(&self.division_rate))
-                        .chain(iter::once(&self.photosynth))
-                        .chain(iter::once(&self.carnivore))
-                        .chain(iter::once(&self.movement_force))
-                        .chain(iter::once(&self.movement_rate));
-        
-        assert!(Self::is_iter_correct(result.clone().count()), "Check Genome.iter(), is not correct!");
-        result
+        assert!(Self::is_iter_correct(create(self).count()), "Check Genome.iter(), is not correct!");
+        return create(self);
+
+        fn create(genome: &Genome) -> impl Iterator<Item = &Vec<f32>> {
+            iter::once(&genome.live_regen_rate)
+                .chain(iter::once(&genome.division_rate))
+                .chain(iter::once(&genome.photosynth))
+                .chain(iter::once(&genome.carnivore))
+                .chain(iter::once(&genome.movement_force))
+                .chain(iter::once(&genome.movement_rate))
+                .chain(iter::once(&genome.defence))
+        }
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Vec<f32>> {
@@ -129,6 +135,7 @@ impl Genome {
                 .chain(iter::once(&mut genome.carnivore))
                 .chain(iter::once(&mut genome.movement_force))
                 .chain(iter::once(&mut genome.movement_rate))
+                .chain(iter::once(&mut genome.defence))
         }
     }
 
