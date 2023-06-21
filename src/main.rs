@@ -27,8 +27,6 @@ pub mod live;
 
 fn main() {
     unsafe { SetProcessDPIAware(); }
-
-    load_settings();
     build_app();
     let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
     let delay = 1_000_000 / 80;
@@ -41,8 +39,10 @@ fn build_app() {
     unsafe { APP_DATA = AppData::lazy() };
     let app_mutex = mut_app_data();
     let mut app = app_mutex.lock().unwrap();
+    app.live_data.settings = load_settings();
     app.build_physics();
-    app.spawn_bacteries(RADIUS_RANGE);
+    let radius = app.live_data.settings.radius_range.clone();
+    app.spawn_bacteries(radius);
 //    app.live_data.bacteries.genome.fill_default();
     app.with_edges(100.0, 100.0);
 
@@ -80,7 +80,8 @@ fn loop_logic(delay: u64) {
 
             if app.frame_num % 100 == 0 {
                 let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
-                app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
+                let radius = app.live_data.settings.radius_range.clone();
+                app.live_data.spawn_bac(pos, rand_ranged_i32(radius));
             }
 
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);

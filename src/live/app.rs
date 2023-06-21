@@ -45,10 +45,12 @@ impl AppData {
     }
     
     pub fn spawn_bacteries(&mut self, radius: Range<i32>) {
-        self.live_data.bacteries = Bacteries::rand_in_rect(200, 1000, 0.0..self.width as f32, 0.0..self.height as f32);
-        self.live_data.bacteries.set_random_radius(radius.start, radius.end);
-        self.live_data.bacteries.actualize_rigidbodies(&mut self.live_data.physics_data.bodies);
-        self.live_data.bacteries.actualize_colliders(&mut self.live_data.physics_data.colliders, &mut self.live_data.physics_data.bodies);
+        let settings = &self.live_data.settings;
+        self.live_data.bacteries = Bacteries::rand_in_rect(200, 1000, 0.0..self.width as f32, 0.0..self.height as f32, settings.start_alive_range.clone());
+        let bac = &mut self.live_data.bacteries;
+        bac.set_random_radius(radius.start, radius.end);
+        bac.actualize_rigidbodies(&mut self.live_data.physics_data.bodies, self.live_data.settings.dead_time);
+        bac.actualize_colliders(&mut self.live_data.physics_data.colliders, &mut self.live_data.physics_data.bodies);
     }
     
     pub fn with_edges(&mut self, edge_width: f32, edge_height: f32) {

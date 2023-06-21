@@ -3,7 +3,7 @@ use std::{f32::consts::PI, ops::Range};
 use micromath::vector::F32x2;
 use rapier2d::prelude::*;
 
-use super::{bacteries_processing::{START_ENERGY, DEAD_TIME, START_ALIVE_RANGE}, genome::Genome, utils::{rand_ranged_f32, rand_range_vec2, rand_ranged_i32}};
+use super::{genome::Genome, utils::{rand_ranged_f32, rand_range_vec2, rand_ranged_i32}};
 
 pub struct Collision {
     pub a: usize,
@@ -34,7 +34,7 @@ impl Bacteries {
             pos: vec![F32x2::default(); num],
             radius: vec![i32::default(); num],
             left_time: vec![0.0; num],
-            energy: vec![START_ENERGY; num],
+            energy: vec![0.0; num],
             parent: vec![0; num],
             is_parented: vec![false; num],
 
@@ -68,11 +68,11 @@ impl Bacteries {
     }
 
     #[inline(always)]
-    pub fn rand_in_rect(num: usize, capacity: usize, x: Range::<f32>, y: Range::<f32>) -> Bacteries {
+    pub fn rand_in_rect(num: usize, capacity: usize, x: Range::<f32>, y: Range::<f32>, start_alive_range: Range<f32>) -> Bacteries {
         let mut result = Bacteries::new(capacity);
 
         for i in 0..num {
-            result.left_time[i] = rand_ranged_f32(START_ALIVE_RANGE);
+            result.left_time[i] = rand_ranged_f32(start_alive_range.clone());
             result.pos.push(rand_range_vec2(x.clone(), y.clone()));
         }
 
@@ -88,11 +88,11 @@ impl Bacteries {
     }
 
     #[inline(always)]
-    pub fn actualize_rigidbodies(&mut self, rigidbody_set: &mut RigidBodySet) {
+    pub fn actualize_rigidbodies(&mut self, rigidbody_set: &mut RigidBodySet, dead_time: f32) {
         while self.rigidbody.len() < self.num {
             let pos = self.pos[self.rigidbody.len()];
             let rb = RigidBodyBuilder::dynamic()
-                .enabled(self.is_alive(self.rigidbody.len()))
+                .enabled(self.is_alive(self.rigidbody.len(), dead_time))
                 .position(Isometry::new(vector![pos.x, pos.y], 0.0))
                 .build();
             self.rigidbody.push(rigidbody_set.insert(rb));
@@ -136,13 +136,13 @@ impl Bacteries {
     }
 
     #[inline(always)]
-    pub fn is_dead(&self, idx: usize) -> bool {
-        self.left_time[idx] <= DEAD_TIME
+    pub fn is_dead(&self, idx: usize, dead_time: f32) -> bool {
+        self.left_time[idx] <= dead_time
     }
 
     #[inline(always)]
-    pub fn is_alive(&self, idx: usize) -> bool {
-        self.left_time[idx] > DEAD_TIME
+    pub fn is_alive(&self, idx: usize, dead_time: f32) -> bool {
+        self.left_time[idx] > dead_time
     }
 
     #[inline(always)]

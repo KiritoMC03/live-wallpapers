@@ -2,9 +2,7 @@ use std::ops::Range;
 
 use micromath::vector::F32x2;
 
-use crate::live::{bacteries_processing::RADIUS_MUT_RANGE};
-
-use self::{physics::PhysicsData, bacteries_processing::{RADIUS_RANGE, START_ALIVE_RANGE}, utils::{rand_ranged_f32, rand_range_vec2}};
+use self::{physics::PhysicsData, utils::{rand_ranged_f32, rand_range_vec2}};
 use rapier2d::prelude::*;
 
 pub mod app;
@@ -20,6 +18,7 @@ pub mod utils;
 pub struct LiveData {
     pub bacteries: bacteries::Bacteries,
     pub physics_data: PhysicsData,
+    pub settings: LiveSettings,
 }
 
 #[derive(Default, Debug)]
@@ -57,10 +56,10 @@ pub struct LiveSettings {
 impl LiveData {
     pub fn spawn_bac(&mut self, pos: F32x2, radius: i32) {
         for i in self.bacteries.into_iter() {
-            if self.bacteries.is_dead(i) {
+            if self.bacteries.is_dead(i, self.settings.dead_time) {
                 self.bacteries.pos[i] = pos;
                 self.bacteries.radius[i] = radius;
-                self.bacteries.left_time[i] = rand_ranged_f32(START_ALIVE_RANGE);
+                self.bacteries.left_time[i] = rand_ranged_f32(self.settings.start_alive_range.clone());
                 self.bacteries.genome.default_one(i);
 
                 let rb = self.physics_data.get_rb_mut(self.bacteries.rigidbody[i]);
@@ -77,16 +76,16 @@ impl LiveData {
 
     pub fn mut_clone(&mut self, src: usize) {
         for i in self.bacteries.into_iter() {
-            if self.bacteries.is_dead(i) {
+            if self.bacteries.is_dead(i, self.settings.dead_time) {
                 let pos = self.bacteries.pos[src];
-                let mut radius = (self.bacteries.radius[src] as f32 * rand_ranged_f32(RADIUS_MUT_RANGE)) as i32;
-                radius = radius.clamp(RADIUS_RANGE.start, RADIUS_RANGE.end);
+                let mut radius = (self.bacteries.radius[src] as f32 * rand_ranged_f32(self.settings.radius_mut_range.clone())) as i32;
+                radius = radius.clamp(self.settings.radius_range.start, self.settings.radius_range.end);
                 self.bacteries.pos[i] = pos + rand_range_vec2(-0.1..0.1, -0.1..0.1);
                 self.bacteries.radius[i] = radius;
-                self.bacteries.left_time[i] = rand_ranged_f32(START_ALIVE_RANGE);
+                self.bacteries.left_time[i] = rand_ranged_f32(self.settings.start_alive_range.clone());
                 self.bacteries.parent[i] = src;
                 self.bacteries.is_parented[i] = true;
-                self.bacteries.genome.mut_clone(src, i);
+                self.bacteries.genome.mut_clone(src, i, self.settings.genome_mut_range.clone());
 
                 let rb = self.physics_data.get_rb_mut(self.bacteries.rigidbody[i]);
                 rb.set_position(Isometry::new(vector![pos.x, pos.y], 0.0), true);

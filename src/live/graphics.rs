@@ -1,11 +1,11 @@
 use std::f32::consts::PI;
+use std::ops::Range;
 use std::sync::Mutex;
 
 use winapi::shared::windef::HDC;
 use winapi::um::winuser::{RedrawWindow, RDW_INVALIDATE};
 use super::app::AppData;
 use super::bacteries::Bacteries;
-use super::bacteries_processing::{FLAGELLA_NUM_RANGE, FLAGELLA_LEN_RANGE};
 
 use live_wallpapers::{PAINTSTRUCT, MSG, null_mut, HWND};
 use live_wallpapers::drawing::colors::{
@@ -78,6 +78,7 @@ pub fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
 }
 
 fn paint_bacteries(hdc: HDC, app: &mut AppData) {
+    let dead_time = app.live_data.settings.dead_time;
     let bac = &app.live_data.bacteries;
 
     let colors = [
@@ -91,7 +92,7 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
 //    close_draw_lines(draw_lines_data);
 
     for i in bac.into_iter() {
-        if bac.is_alive(i) {
+        if bac.is_alive(i, dead_time) {
             let val = (0.5 - bac.genome.photosynth[i] / 2.0 + bac.genome.carnivore[i] / 2.0).clamp(0.0, 9.9);
             let col = interpolate_colors(&colors, val);
             let (brush, old_brush) = change_solid_brush(hdc, col);
@@ -103,16 +104,16 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
 }
 
 #[inline(always)]
-pub fn paint_flagella(hdc: HDC, bac: &Bacteries) {
+pub fn paint_flagella(hdc: HDC, bac: &Bacteries, num_range: Range<i32>, len_range: Range<i32>, dead_time: f32) {
     type Point = winapi::shared::windef::POINT;
-    let mut pts = Vec::with_capacity(1005 + FLAGELLA_NUM_RANGE.end as usize);
-    let mut poly_points = Vec::with_capacity(505 + FLAGELLA_NUM_RANGE.end as usize / 2);
+    let mut pts = Vec::with_capacity(1005 + num_range.end as usize);
+    let mut poly_points = Vec::with_capacity(505 + num_range.end as usize / 2);
     let mut total_num_flagella = 0u32;
 
     for i in bac.into_iter() {
-        if bac.is_alive(i) {
-            let len = (FLAGELLA_LEN_RANGE.start as f32 + (FLAGELLA_LEN_RANGE.end - FLAGELLA_LEN_RANGE.start) as f32 * bac.genome.movement_force[i]).round();
-            let mut num_flagella = (FLAGELLA_NUM_RANGE.start as f32 + (FLAGELLA_NUM_RANGE.end - FLAGELLA_NUM_RANGE.start) as f32 * bac.genome.movement_rate[i]).round() as u32;
+        if bac.is_alive(i, dead_time) {
+            let len = (len_range.start as f32 + (len_range.end - len_range.start) as f32 * bac.genome.movement_force[i]).round();
+            let mut num_flagella = (num_range.start as f32 + (num_range.end - num_range.start) as f32 * bac.genome.movement_rate[i]).round() as u32;
             if num_flagella % 2 == 1 && num_flagella > 0 {
                 num_flagella -= 1;
             }

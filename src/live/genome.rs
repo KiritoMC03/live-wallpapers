@@ -1,6 +1,6 @@
-use std::iter;
+use std::{iter, ops::Range};
 
-use super::{utils::rand_ranged_f32, bacteries_processing::GENOME_MUT_RANGE};
+use super::utils::rand_ranged_f32;
 
 pub type Gen = f32;
 
@@ -84,9 +84,9 @@ impl Genome {
     }
 
     #[inline(always)]
-    pub fn mut_clone(&mut self, from: usize, to: usize) {
+    pub fn mut_clone(&mut self, from: usize, to: usize, genome_mut_range: Range::<f32>) {
         for gen in self.iter_mut() {
-            gen[to] = gen[from] * rand_ranged_f32(GENOME_MUT_RANGE);
+            gen[to] = gen[from] * rand_ranged_f32(genome_mut_range.clone());
         }
         self.normilize_one(to);
     }
