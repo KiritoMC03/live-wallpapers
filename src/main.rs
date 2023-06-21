@@ -2,6 +2,7 @@
 
 use std::sync::Mutex;
 
+use live::save_load::load_settings;
 //use live::save_load::try_save;
 use live::utils::rand_range_vec2;
 use live::utils::rand_ranged_i32;
@@ -27,6 +28,7 @@ pub mod live;
 fn main() {
     unsafe { SetProcessDPIAware(); }
 
+    load_settings();
     build_app();
     let window_handle = create_desktop_window_fast("Live", Some(window_procedure));
     let delay = 1_000_000 / 80;

@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use micromath::vector::F32x2;
 
 use crate::live::{bacteries_processing::RADIUS_MUT_RANGE};
@@ -18,6 +20,38 @@ pub mod utils;
 pub struct LiveData {
     pub bacteries: bacteries::Bacteries,
     pub physics_data: PhysicsData,
+}
+
+#[derive(Default, Debug)]
+pub struct LiveSettings {
+    pub move_force : f32,
+    pub vel_range : Range<f32>,
+
+    pub radius_range : Range<i32>,
+
+    pub max_alive : f32,
+    pub start_alive_range : Range<f32>,
+    pub dead_time : f32,
+
+    pub start_energy : f32,
+    pub division_energy : f32,
+    pub alive_to_energy_coef : f32,
+
+    pub photosynth_rate : f32,
+    pub carnivore_rate : f32,
+    pub carnivore_damage : f32,
+    pub defence : f32,
+    pub carnivore_cost : f32,
+
+    pub genome_mut_range : Range<f32>,
+    pub radius_mut_range : Range<f32>,
+
+    pub flagella_num_range : Range<i32>,
+    pub flagella_len_range : Range<i32>,
+
+    pub max_energy_distribution : f32,
+
+    pub max_repulsive_force : f32,
 }
 
 impl LiveData {
@@ -70,6 +104,33 @@ impl LiveData {
     pub fn kill_bac(&mut self, idx: usize) {
         self.physics_data.get_rb_mut(self.bacteries.rigidbody[idx]).set_enabled(false);
         self.physics_data.get_coll_mut(self.bacteries.collider[idx]).set_enabled(false);
+    }
+}
+
+impl LiveSettings {
+    pub fn new() -> LiveSettings {
+        LiveSettings {
+            move_force: 100.0,
+            vel_range: -1.0..1.0,
+            radius_range: 8..20,
+            max_alive: 100.0,
+            start_alive_range: 1.0..100.0,
+            dead_time: 0.0,
+            start_energy: 1.0,
+            division_energy: 10.0,
+            alive_to_energy_coef: 0.1,
+            photosynth_rate: 0.02,
+            carnivore_rate: 10.0,
+            carnivore_damage: 15.0,
+            defence: 15.0,
+            carnivore_cost: 20.0,
+            genome_mut_range: 0.9..1.1,
+            radius_mut_range: 0.9..1.1,
+            flagella_num_range: 6..14,
+            flagella_len_range: 2..8,
+            max_energy_distribution: 10.0,
+            max_repulsive_force: 300.0,
+        }
     }
 }
 
