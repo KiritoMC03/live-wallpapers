@@ -14,6 +14,7 @@ pub struct Genome {
     pub movement_force: Vec<Gen>,
     pub movement_rate: Vec<Gen>,
     pub defence: Vec<Gen>,
+    pub energy_distribution: Vec<Gen>,
 }
 
 pub trait GenTrait {
@@ -54,6 +55,7 @@ impl Genome {
             movement_force: default_gen(length),
             movement_rate: default_gen(length),
             defence: default_gen(length),
+            energy_distribution: default_gen(length),
         };
 
         result.normilize();
@@ -71,6 +73,7 @@ impl Genome {
             movement_force: vec![],
             movement_rate: vec![],
             defence: vec![],
+            energy_distribution: vec![],
         }
     }
 
@@ -121,6 +124,7 @@ impl Genome {
                 .chain(iter::once(&genome.movement_force))
                 .chain(iter::once(&genome.movement_rate))
                 .chain(iter::once(&genome.defence))
+                .chain(iter::once(&genome.energy_distribution))
         }
     }
 
@@ -136,6 +140,7 @@ impl Genome {
                 .chain(iter::once(&mut genome.movement_force))
                 .chain(iter::once(&mut genome.movement_rate))
                 .chain(iter::once(&mut genome.defence))
+                .chain(iter::once(&mut genome.energy_distribution))
         }
     }
 

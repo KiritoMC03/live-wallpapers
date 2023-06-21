@@ -2,6 +2,9 @@
 
 use std::sync::Mutex;
 
+//use live::save_load::try_save;
+use live::utils::rand_range_vec2;
+use live::utils::rand_ranged_i32;
 use rand::Rng;
 use rapier2d::prelude::*;
 
@@ -73,10 +76,10 @@ fn loop_logic(delay: u64) {
             let mut app = mut_app_data().lock().unwrap();
             let frame_start = std::time::Instant::now();
 
-//            if app.frame_num % 100 == 0 {
-//                let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
-//                app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
-//            }
+            if app.frame_num % 100 == 0 {
+                let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);
+                app.live_data.spawn_bac(pos, rand_ranged_i32(RADIUS_RANGE));
+            }
 
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
             process_bacteries(&mut app);

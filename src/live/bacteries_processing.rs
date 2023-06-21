@@ -33,6 +33,8 @@ pub const RADIUS_MUT_RANGE : Range<f32> = 0.9..1.1;
 pub const FLAGELLA_NUM_RANGE : Range<i32> = 6..14;
 pub const FLAGELLA_LEN_RANGE : Range<i32> = 2..8;
 
+pub const MAX_ENERGY_DISTRIBUTION : f32 = 10.0;
+
 pub fn process_bacteries(app: &mut AppData) {
     process_alive(app);
     process_movement(app);
@@ -112,6 +114,7 @@ fn process_collisions(app: &mut AppData) {
         let a = physics.get_coll(col.collider1()).user_data as usize;
         let b = physics.get_coll(col.collider2()).user_data as usize;
         process_carnivore(app, a, b);
+        process_energy_distribution(app, a, b);
     }
 }
 
@@ -127,6 +130,18 @@ fn process_carnivore(app: &mut AppData, a: usize, b: usize) {
 
     bac.energy[a] += (CARNIVORE_RATE * CARNIVORE_RATE - CARNIVORE_COST) * cav_a * app.delta_time;
     bac.energy[b] += (CARNIVORE_RATE * CARNIVORE_RATE - CARNIVORE_COST) * cav_b * app.delta_time;
+}
+
+fn process_energy_distribution(app: &mut AppData, a: usize, b: usize) {
+    let bac = &mut app.live_data.bacteries;
+    let dis_a = bac.genome.energy_distribution[a];
+    let dis_b = bac.genome.energy_distribution[b];
+
+    let en_a = dis_b * MAX_ENERGY_DISTRIBUTION * app.delta_time;
+    let en_b = dis_a * MAX_ENERGY_DISTRIBUTION * app.delta_time;
+
+    bac.energy[a] += en_a;
+    bac.energy[b] += en_b;
 }
 
 fn process_division(app: &mut AppData) {
@@ -155,7 +170,7 @@ fn process_division_movement(app: &mut AppData) {
         let offset = pos_b - pos_a;
         let mut dir = offset;
         normalize_f32x2(&mut dir);
-        let pos = pos_a + offset + dir * app.delta_time;
+        let pos = pos_a + offset + dir * 3.0 * app.delta_time;
 
         let rb = data.physics_data.get_rb_mut(data.bacteries.rigidbody[i]);
         rb.set_position(Isometry::new(vector![pos.x, pos.y], 0.0), true);
