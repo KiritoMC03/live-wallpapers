@@ -17,7 +17,8 @@ pub fn try_save(app: &AppData) -> std::io::Result<()> {
                        "movement_force",
                        "movement_rate",
                        "defence",
-                       "energy_distribution"];
+                       "energy_distribution",
+                       "repulsive_force"];
         writer.write_record(&headers)?;
         for i in 0..genome.length {
             let row = [genome.live_regen_rate[i].to_string(),
@@ -28,6 +29,7 @@ pub fn try_save(app: &AppData) -> std::io::Result<()> {
                        genome.movement_rate[i].to_string(),
                        genome.defence[i].to_string(),
                        genome.energy_distribution[i].to_string(),
+                       genome.repulsive_force[i].to_string(),
                        ];
             writer.write_record(&row)?;
         }

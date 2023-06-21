@@ -1,8 +1,11 @@
 use std::f32::consts::PI;
 use std::ops::Range;
 
+use micromath::vector::F32x2;
 use rapier2d::prelude::*;
 use rapier2d::na::Vector2;
+
+use crate::live::LiveData;
 
 use super::app::AppData;
 use super::utils::{rand_range_vec2, rand_ranged_f32};
@@ -34,6 +37,8 @@ pub const FLAGELLA_NUM_RANGE : Range<i32> = 6..14;
 pub const FLAGELLA_LEN_RANGE : Range<i32> = 2..8;
 
 pub const MAX_ENERGY_DISTRIBUTION : f32 = 10.0;
+
+pub const MAX_REPULSIVE_FORCE : f32 = 300.0;
 
 pub fn process_bacteries(app: &mut AppData) {
     process_alive(app);
@@ -115,6 +120,7 @@ fn process_collisions(app: &mut AppData) {
         let b = physics.get_coll(col.collider2()).user_data as usize;
         process_carnivore(app, a, b);
         process_energy_distribution(app, a, b);
+        process_repulsive(app, a, b);
     }
 }
 
@@ -137,11 +143,35 @@ fn process_energy_distribution(app: &mut AppData, a: usize, b: usize) {
     let dis_a = bac.genome.energy_distribution[a];
     let dis_b = bac.genome.energy_distribution[b];
 
-    let en_a = dis_b * MAX_ENERGY_DISTRIBUTION * app.delta_time;
-    let en_b = dis_a * MAX_ENERGY_DISTRIBUTION * app.delta_time;
+    let a_to_b = dis_a * MAX_ENERGY_DISTRIBUTION * app.delta_time;
+    let b_to_a = dis_b * MAX_ENERGY_DISTRIBUTION * app.delta_time;
 
-    bac.energy[a] += en_a;
-    bac.energy[b] += en_b;
+    bac.energy[b] -= b_to_a;
+    bac.energy[a] += b_to_a;
+
+    bac.energy[a] -= a_to_b;
+    bac.energy[b] += a_to_b;
+}
+
+fn process_repulsive(app: &mut AppData, a: usize, b: usize) {
+    let data = &mut app.live_data;
+
+    let pos_a = data.bacteries.pos[a];
+    let pos_b = data.bacteries.pos[b];
+    let mut a_to_b = pos_b - pos_a;
+    normalize_f32x2(&mut a_to_b);
+
+    try_repulsive(data, a, b, a_to_b);
+    try_repulsive(data, b, a, a_to_b * -1.0);
+
+    fn try_repulsive(data: &mut LiveData, cur: usize, other: usize, dir: F32x2) {
+        if calc_rate(data.bacteries.genome.repulsive_rate[cur]) {
+            let other_rb = data.bacteries.rigidbody[other];
+            let force = data.bacteries.genome.repulsive_force[cur];
+            let force = Vector2::new(dir.x, dir.y) * MAX_REPULSIVE_FORCE * force;
+            data.physics_data.get_rb_mut(other_rb).add_force(force, true);
+        }
+    }
 }
 
 fn process_division(app: &mut AppData) {
