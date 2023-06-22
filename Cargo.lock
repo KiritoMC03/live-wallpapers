@@ -178,13 +178,14 @@ checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 
 [[package]]
 name = "live-wallpapers"
-version = "0.1.0"
+version = "0.4.1"
 dependencies = [
  "csv",
  "micromath",
  "once_cell",
  "rand",
  "rapier2d",
+ "wallpaper-app",
  "winapi",
 ]
 
@@ -517,6 +518,16 @@ name = "unicode-ident"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15811caf2415fb889178633e7724bad2509101cde276048e013b9def5e51fa0"
+
+[[package]]
+name = "wallpaper-app"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fb46aeb4b6d4e4f412750fbbe417263e2161179d59792180b3f745690484351"
+dependencies = [
+ "rand",
+ "winapi",
+]
 
 [[package]]
 name = "wasi"

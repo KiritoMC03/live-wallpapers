@@ -1,26 +1,15 @@
 use std::f32::consts::PI;
 use std::ops::Range;
+use std::ptr::null_mut;
 use std::sync::Mutex;
 
-use winapi::shared::windef::HDC;
-use winapi::um::winuser::{RedrawWindow, RDW_INVALIDATE};
+use wallpaper_app::drawing::colors::{RGB, interpolate_colors};
+use wallpaper_app::drawing::primitives::{open_draw_frame, draw_fullscreen_rect, close_draw_frame, change_solid_brush, draw_circle, revert_brush};
+use winapi::shared::windef::{HDC, HWND};
+use winapi::um::winuser::{RedrawWindow, RDW_INVALIDATE, PAINTSTRUCT, MSG};
 use super::app::AppData;
 use super::bacteries::Bacteries;
 
-use live_wallpapers::{PAINTSTRUCT, MSG, null_mut, HWND};
-use live_wallpapers::drawing::colors::{
-    RGB,
-    interpolate_colors
-};
-
-use live_wallpapers::drawing::primitives::{
-    open_draw_frame,
-    draw_fullscreen_rect,
-    change_solid_brush,
-    draw_circle,
-    revert_brush,
-    close_draw_frame
-};
 
 pub struct GraphicsPipeline<T: Fn(MSG) -> bool> {
     messages_handler: T,

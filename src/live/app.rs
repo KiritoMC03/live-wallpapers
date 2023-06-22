@@ -1,8 +1,8 @@
 use std::{ops::Range, sync::Mutex};
 
-use live_wallpapers::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 use once_cell::sync::Lazy;
 use rapier2d::prelude::{RigidBodySet, ColliderSet};
+use winapi::um::winuser::{GetSystemMetrics, SM_CYSCREEN, SM_CXSCREEN};
 
 use super::{LiveData, physics::{create_pipeline, create_edges}, bacteries::Bacteries};
 

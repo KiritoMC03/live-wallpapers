@@ -1,23 +1,54 @@
 //#![windows_subsystem = "windows"]
-
 use std::sync::Mutex;
 
-use live::save_load::load_settings;
-//use live::save_load::try_save;
-use live::utils::rand_range_vec2;
-use live::utils::rand_ranged_i32;
-use live_wallpapers::drawing::colors::interpolate_floats;
-use rand::Rng;
-use rapier2d::prelude::*;
+use live::utils::{
+    rand_range_vec2,
+    rand_ranged_i32,
+};
 
-use rapier2d::na::Vector2;
+use live::save_load::load_settings;
+use rand::Rng;
+
+use rapier2d::{
+    prelude::*,
+    na::Vector2,
+};
+
+use winapi::shared::windef::HWND;
+use winapi::shared::basetsd::LONG_PTR;
+
+use winapi::shared::minwindef::{
+    LPARAM,
+    LRESULT,
+    UINT,
+    WPARAM,
+};
+
 use winapi::um::winuser::{
+    CREATESTRUCTW,
+    PAINTSTRUCT,
     MSG,
+
     SetProcessDPIAware,
+    DefWindowProcW,
+    PostQuitMessage,
+    DestroyWindow,
+    GetWindowLongPtrW,
+    SetWindowLongPtrW,
+    BeginPaint,
+    EndPaint,
+
+    GWLP_USERDATA,
+    WM_CLOSE,
+    WM_CREATE,
+    WM_DESTROY,
+    WM_NCCREATE,
+    WM_PAINT,
     WM_ERASEBKGND,
 };
 
-use live_wallpapers::*;
+use wallpaper_app::*;
+use wallpaper_app::drawing::colors::*;
 
 use live::app::*;
 use live::physics::*;
@@ -42,11 +73,9 @@ fn build_app() {
     let mut app = app_mutex.lock().unwrap();
     app.live_data.settings = load_settings();
     app.frames_in_day = app.live_data.settings.day_length_sec / app.delta_time;
-    println!("{}", app.frames_in_day);
     app.build_physics();
     let radius = app.live_data.settings.radius_range.clone();
     app.spawn_bacteries(radius);
-//    app.live_data.bacteries.genome.fill_default();
     app.with_edges(100.0, 100.0);
 
     for i in app.live_data.bacteries.into_iter() {
