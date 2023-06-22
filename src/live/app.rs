@@ -14,20 +14,23 @@ pub struct AppData {
     pub height: usize,
     pub frame_num: u128,
     pub frame_processed: bool,
+    pub frames_in_day: f32,
+    pub day_progress: f32,
     pub delta_time: f32,
-    pub bg_progress: u128,
     pub live_data: LiveData,
 }
 
 impl AppData {
     pub fn new() -> AppData {
+        const DELTA_TIME: f32 = 0.016666;
         AppData {
             width: unsafe { GetSystemMetrics(SM_CXSCREEN) } as usize,
             height: unsafe { GetSystemMetrics(SM_CYSCREEN) } as usize,
             frame_num: 0,
             frame_processed: false,
-            delta_time: 0.016666,
-            bg_progress: 0,
+            delta_time: DELTA_TIME,
+            frames_in_day: 8.0 * 60.0 / DELTA_TIME,
+            day_progress: 0.5,
             live_data: LiveData::default(),
         }
     }

@@ -16,6 +16,7 @@ pub mod utils;
 
 #[derive(Default)]
 pub struct LiveData {
+    pub light_force: f32,
     pub bacteries: bacteries::Bacteries,
     pub physics_data: PhysicsData,
     pub settings: LiveSettings,
@@ -23,6 +24,8 @@ pub struct LiveData {
 
 #[derive(Default, Debug)]
 pub struct LiveSettings {
+    pub light_force : [f32; 4],
+    pub day_length_sec : f32,
     pub move_force : f32,
     pub vel_range : Range<f32>,
 
@@ -109,6 +112,8 @@ impl LiveData {
 impl LiveSettings {
     pub fn new() -> LiveSettings {
         LiveSettings {
+            light_force: [0.2, 0.65, 1.0, 0.2],
+            day_length_sec: 8.0 * 60.0,
             move_force: 100.0,
             vel_range: -1.0..1.0,
             radius_range: 8..20,
@@ -130,6 +135,58 @@ impl LiveSettings {
             max_energy_distribution: 10.0,
             max_repulsive_force: 300.0,
         }
+    }
+}
+
+impl std::fmt::Display for LiveSettings {
+fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "LiveSettings
+{{
+    light_force: {:?},
+    day_length_sec: {}
+    move_force: {:?},
+    vel_range: {:?},
+    radius_range: {:?},
+    max_alive: {:?},
+    start_alive_range: {:?},
+    dead_time: {:?},
+    start_energy: {:?},
+    division_energy: {:?},
+    alive_to_energy_coef: {:?},
+    photosynth_rate: {:?},
+    carnivore_rate: {:?},
+    carnivore_damage: {:?},
+    defence: {:?},
+    carnivore_cost: {:?},
+    genome_mut_range: {:?},
+    radius_mut_range: {:?},
+    flagella_num_range: {:?},
+    flagella_len_range: {:?},
+    max_energy_distribution: {:?},
+    max_repulsive_force: {:?},
+}}",
+        self.light_force,
+        self.day_length_sec,
+        self.move_force,
+        self.vel_range,
+        self.radius_range,
+        self.max_alive,
+        self.start_alive_range,
+        self.dead_time,
+        self.start_energy,
+        self.division_energy,
+        self.alive_to_energy_coef,
+        self.photosynth_rate,
+        self.carnivore_rate,
+        self.carnivore_damage,
+        self.defence,
+        self.carnivore_cost,
+        self.genome_mut_range,
+        self.radius_mut_range,
+        self.flagella_num_range,
+        self.flagella_len_range,
+        self.max_energy_distribution,
+        self.max_repulsive_force)
     }
 }
 

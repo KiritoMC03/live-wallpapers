@@ -27,7 +27,11 @@ radius_mut_range 			0.9..1.1
 flagella_num_range 			6..14
 flagella_len_range 			2..8
 max_energy_distribution 	10.0
-max_repulsive_force 		300.0";
+max_repulsive_force 		300.0
+night_light_force           0.2
+morning_light_force         0.65
+day_light_force             1.0
+day_length_sec              480.0";
 
 pub fn try_save(app: &AppData) -> std::io::Result<()> {
     if app.frame_num % 1000 == 0 {
@@ -89,6 +93,9 @@ pub fn load_settings() -> LiveSettings {
     }
     let file = File::open(path);
     let mut result = LiveSettings::new();
+    let mut night_light_force = result.light_force[0];
+    let mut morning_light_force = result.light_force[1];
+    let mut day_light_force = result.light_force[2];
     let mut floats = [
         ("move_force", &mut result.move_force),
 
@@ -108,6 +115,11 @@ pub fn load_settings() -> LiveSettings {
         ("max_energy_distribution", &mut result.max_energy_distribution),
 
         ("max_repulsive_force", &mut result.max_repulsive_force),
+
+        ("night_light_force", &mut night_light_force),
+        ("morning_light_force", &mut morning_light_force),
+        ("day_light_force", &mut day_light_force),
+        ("day_length_sec", &mut result.day_length_sec),
     ];
 
     let mut ranges_f32 = [
@@ -140,6 +152,15 @@ pub fn load_settings() -> LiveSettings {
         Err(err) => eprintln!("Can`t open settings file with error: {}", err),
     }
 
+    result.light_force = [
+        night_light_force,
+        morning_light_force,
+        day_light_force,
+        night_light_force,
+    ];
+
+    println!("LiveSettings read with:");
+    println!("{}", result);
     result
 }
 
@@ -154,7 +175,6 @@ fn read_floats(floats: &mut std::slice::IterMut<(&str, &mut f32)>, line: &String
             match value {
                 Ok(v) => {
                     **field = v;
-                    println!("Field {} read, and value set to {}", name, v);
                 },
                 Err(e) => eprintln!("Can`t parse settings {} with error: {}", name, e),
             }
@@ -181,7 +201,6 @@ fn read_ranges<T: FromStr + Default + Display + Copy>(ranges: &mut std::slice::I
             let range = read_range_split::<T>(&mut split.clone(), &name);
             (*field).start = range.start;
             (*field).end = range.end;
-            println!("Field {} read, and range value set to {}..{}", name, range.start, range.end);
         }
     }
 }

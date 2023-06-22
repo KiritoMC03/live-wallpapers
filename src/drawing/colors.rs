@@ -46,3 +46,21 @@ pub fn interpolate_colors(colors: &[RGB<u8>], weight: f32) -> u32 {
 
     winapi::um::wingdi::RGB(r, g, b)
 }
+
+pub fn interpolate_floats(floats: &[f32], weight: f32) -> f32 {
+    let num_colors = floats.len();
+    let segment = 1.0 / (num_colors - 1) as f32;
+
+    // Find the two adjacent colors for the given weight
+    let index1 = (weight / segment).floor() as usize;
+    let index2 = index1 + 1;
+
+    let float1 = floats[index1];
+    let float2 = floats[index2];
+
+    // Calculate the weight within the segment
+    let segment_weight = (weight - index1 as f32 * segment) / segment;
+
+    // Interpolate between the two floats
+    (1.0 - segment_weight) * float1 as f32 + segment_weight * float2 as f32
+}

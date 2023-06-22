@@ -53,13 +53,15 @@ impl<T: Fn(MSG) -> bool> GraphicsPipeline<T> {
 
 pub fn paint_frame(hdc: HDC, ps: &PAINTSTRUCT, app: &mut AppData) {
     let colors = [
-        RGB::new(70, 70, 70),
-        RGB::new(255, 92, 102),
-        RGB::new(98, 72, 213),
-        RGB::new(226, 239, 84),
-        ];
+        RGB::new(26,43,69),
+        RGB::new(26,43,69),
+        RGB::new(204,150,74),
+        RGB::new(206,200,110),
+        RGB::new(206,200,110),
+        RGB::new(26,43,69),
+    ];
 
-    let color = interpolate_colors(&colors, (app.bg_progress % 200 as u128) as f32 / 200_f32);
+    let color = interpolate_colors(&colors, app.day_progress);
 
     let frame = open_draw_frame(hdc, app.width as i32, app.height as i32);
     draw_fullscreen_rect(frame.hdc, &ps, color);

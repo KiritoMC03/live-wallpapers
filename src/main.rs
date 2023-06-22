@@ -6,6 +6,7 @@ use live::save_load::load_settings;
 //use live::save_load::try_save;
 use live::utils::rand_range_vec2;
 use live::utils::rand_ranged_i32;
+use live_wallpapers::drawing::colors::interpolate_floats;
 use rand::Rng;
 use rapier2d::prelude::*;
 
@@ -40,6 +41,8 @@ fn build_app() {
     let app_mutex = mut_app_data();
     let mut app = app_mutex.lock().unwrap();
     app.live_data.settings = load_settings();
+    app.frames_in_day = app.live_data.settings.day_length_sec / app.delta_time;
+    println!("{}", app.frames_in_day);
     app.build_physics();
     let radius = app.live_data.settings.radius_range.clone();
     app.spawn_bacteries(radius);
@@ -77,6 +80,9 @@ fn loop_logic(delay: u64) {
         loop {
             let mut app = mut_app_data().lock().unwrap();
             let frame_start = std::time::Instant::now();
+
+            app.day_progress = (app.frame_num as f32 % app.frames_in_day / app.frames_in_day).clamp(0.0, 1.0);
+            app.live_data.light_force = interpolate_floats(&app.live_data.settings.light_force, app.day_progress);
 
             if app.frame_num % 100 == 0 {
                 let pos = rand_range_vec2(0.0..app.width as f32, 0.0..app.height as f32);

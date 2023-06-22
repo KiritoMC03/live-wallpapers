@@ -75,7 +75,13 @@ fn process_photosynth(app: &mut AppData) {
         }
 
         let radius = live.bacteries.radius[i];
-        live.bacteries.energy[i] += photosynth * live.settings.photosynth_rate * app.delta_time * PI * (radius * radius) as f32;
+        live.bacteries.energy[i] +=
+            photosynth *
+            live.settings.photosynth_rate *
+            app.delta_time *
+            PI *
+            (radius * radius) as f32
+            * live.light_force;
     }
 }
 
