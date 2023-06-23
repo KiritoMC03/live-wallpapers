@@ -17,6 +17,7 @@ pub mod utils;
 #[derive(Default)]
 pub struct LiveData {
     pub light_force: f32,
+    pub organic_matter: f32,
     pub bacteries: bacteries::Bacteries,
     pub physics_data: PhysicsData,
     pub settings: LiveSettings,
@@ -55,6 +56,9 @@ pub struct LiveSettings {
     pub max_energy_distribution : f32,
 
     pub max_repulsive_force : f32,
+
+    pub on_dead_matter : f32,
+    pub saprophyte_rate : f32,
 }
 
 impl LiveData {
@@ -107,6 +111,7 @@ impl LiveData {
     pub fn kill_bac(&mut self, idx: usize) {
         self.physics_data.get_rb_mut(self.bacteries.rigidbody[idx]).set_enabled(false);
         self.physics_data.get_coll_mut(self.bacteries.collider[idx]).set_enabled(false);
+        self.organic_matter = (self.settings.on_dead_matter + self.organic_matter).clamp(0.0, 10000.0); // ToDo: to const ?
     }
 }
 
@@ -136,6 +141,8 @@ impl LiveSettings {
             flagella_len_range: 2..8,
             max_energy_distribution: 10.0,
             max_repulsive_force: 300.0,
+            on_dead_matter: 0.5,
+            saprophyte_rate: 1.0,
         }
     }
 }
@@ -167,6 +174,8 @@ fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     flagella_len_range: {:?},
     max_energy_distribution: {:?},
     max_repulsive_force: {:?},
+    on_dead_matter: {:?},
+    saprophyte_rate: {:?},
 }}",
         self.light_force,
         self.day_length_sec,
@@ -190,7 +199,9 @@ fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.flagella_num_range,
         self.flagella_len_range,
         self.max_energy_distribution,
-        self.max_repulsive_force)
+        self.max_repulsive_force,
+        self.on_dead_matter,
+        self.saprophyte_rate)
     }
 }
 

@@ -32,7 +32,9 @@ max_repulsive_force 		300.0
 night_light_force           0.2
 morning_light_force         0.65
 day_light_force             1.0
-day_length_sec              480.0";
+day_length_sec              480.0
+on_dead_matter              0.5
+saprophyte_rate             1.0";
 
 pub fn try_save(app: &AppData) -> std::io::Result<()> {
     if app.frame_num % 1000 == 0 {
@@ -49,7 +51,9 @@ pub fn try_save(app: &AppData) -> std::io::Result<()> {
                        "movement_rate",
                        "defence",
                        "energy_distribution",
-                       "repulsive_force"];
+                       "repulsive_force",
+                       "repulsive_rate",
+                       "saprophyte"];
         writer.write_record(&headers)?;
         for i in 0..genome.length {
             let row = [genome.live_regen_rate[i].to_string(),
@@ -61,6 +65,8 @@ pub fn try_save(app: &AppData) -> std::io::Result<()> {
                        genome.defence[i].to_string(),
                        genome.energy_distribution[i].to_string(),
                        genome.repulsive_force[i].to_string(),
+                       genome.repulsive_rate[i].to_string(),
+                        genome.saprophyte[i].to_string(),
                        ];
             writer.write_record(&row)?;
         }
@@ -122,6 +128,9 @@ pub fn load_settings() -> LiveSettings {
         ("morning_light_force", &mut morning_light_force),
         ("day_light_force", &mut day_light_force),
         ("day_length_sec", &mut result.day_length_sec),
+
+        ("on_dead_matter", &mut result.on_dead_matter),
+        ("saprophyte_rate", &mut result.saprophyte_rate),
     ];
 
     let mut ranges_f32 = [

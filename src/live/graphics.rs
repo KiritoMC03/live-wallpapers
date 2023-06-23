@@ -73,8 +73,9 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
     let bac = &app.live_data.bacteries;
 
     let colors = [
-        RGB::new(10, 180, 10),
-        RGB::new(180, 10, 10),
+        RGB::new(200, 10, 10), // red - carnivore
+        RGB::new(10, 200, 10), // green - photosynth
+        RGB::new(10, 10, 200), // blue - saprophyte
         ];
 
 //    let flagella_col = winapi::um::wingdi::RGB(0, 0, 0);
@@ -84,9 +85,16 @@ fn paint_bacteries(hdc: HDC, app: &mut AppData) {
 
     for i in bac.into_iter() {
         if bac.is_alive(i, dead_time) {
-            let val = (0.5 - bac.genome.photosynth[i] / 2.0 + bac.genome.carnivore[i] / 2.0).clamp(0.0, 9.9);
-            let col = interpolate_colors(&colors, val);
-            let (brush, old_brush) = change_solid_brush(hdc, col);
+//            let val = (0.5 - bac.genome.photosynth[i] / 2.0 + bac.genome.carnivore[i] / 2.0).clamp(0.0, 9.9);
+            let proportions = [
+                bac.genome.carnivore[i],
+                bac.genome.photosynth[i],
+                bac.genome.saprophyte[i],
+            ];
+            let color = mix_colors(&colors, &proportions);
+            let color = winapi::um::wingdi::RGB(color.r, color.g, color.b);
+//            let col = interpolate_colors(&colors, val);
+            let (brush, old_brush) = change_solid_brush(hdc, color);
             let pos = bac.pos[i];
             draw_circle(hdc, pos.x as i32, pos.y as i32, bac.radius[i]);
             revert_brush(hdc, brush, old_brush);
@@ -146,4 +154,22 @@ pub fn paint_flagella(hdc: HDC, bac: &Bacteries, num_range: Range<i32>, len_rang
     fn paint(hdc: HDC, pts: &Vec<Point>, poly_points: &Vec<u32>, total_num_flagella: u32) {
         unsafe { winapi::um::wingdi::PolyPolyline(hdc, pts.as_ptr(), poly_points.as_ptr(), total_num_flagella) };
     }
+}
+
+fn mix_colors(colors: &[RGB<u8>], proportions: &[f32]) -> RGB<u8> {
+    let total_prop = proportions.iter().sum::<f32>();
+
+    let calculate_component = |component: fn(&RGB<u8>) -> u8| {
+        colors
+            .iter()
+            .map(|v| component(v) as f32)
+            .zip(proportions)
+            .fold(0.0, |acc, (v, p)| acc + v * p) / total_prop
+    };
+
+    let r = calculate_component(|v| v.r);
+    let g = calculate_component(|v| v.g);
+    let b = calculate_component(|v| v.b);
+
+    RGB::new(r as u8, g as u8, b as u8)
 }

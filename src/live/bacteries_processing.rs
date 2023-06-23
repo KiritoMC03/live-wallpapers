@@ -16,6 +16,7 @@ pub fn process_bacteries(app: &mut AppData) {
 
     if app.frame_num > 100 {
         process_photosynth(app);
+        process_saprophyte(app);
         process_collisions(app);
         process_division(app);
         process_division_movement(app);
@@ -82,8 +83,27 @@ fn process_photosynth(app: &mut AppData) {
             live.settings.photosynth_rate *
             app.delta_time *
             PI *
-            (radius * radius) as f32
-            * live.light_force;
+            (radius * radius) as f32 *
+            live.light_force;
+    }
+}
+
+fn process_saprophyte(app: &mut AppData) {
+    let live = &mut app.live_data;
+    for i in live.bacteries.into_iter() {
+        if live.organic_matter <= 1.0 {
+            return;
+        }
+        let saprophyte = live.bacteries.genome.saprophyte[i];
+        if live.bacteries.is_dead(i, live.settings.dead_time) || saprophyte == 0.0 {
+            continue;
+        }
+
+        live.organic_matter -= 1.0;
+        live.bacteries.energy[i] +=
+            saprophyte *
+            live.settings.saprophyte_rate *
+            app.delta_time;
     }
 }
 

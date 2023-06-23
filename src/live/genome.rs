@@ -17,6 +17,7 @@ pub struct Genome {
     pub energy_distribution: Vec<Gen>,
     pub repulsive_force: Vec<Gen>,
     pub repulsive_rate: Vec<Gen>,
+    pub saprophyte: Vec<Gen>,
 }
 
 pub trait GenTrait {
@@ -60,6 +61,7 @@ impl Genome {
             energy_distribution: default_gen(length),
             repulsive_force: default_gen(length),
             repulsive_rate: default_gen(length),
+            saprophyte: default_gen(length),
         };
 
         result.normilize();
@@ -80,6 +82,7 @@ impl Genome {
             energy_distribution: vec![],
             repulsive_force: vec![],
             repulsive_rate: vec![],
+            saprophyte: vec![],
         }
     }
 
@@ -133,6 +136,7 @@ impl Genome {
                 .chain(iter::once(&genome.energy_distribution))
                 .chain(iter::once(&genome.repulsive_force))
                 .chain(iter::once(&genome.repulsive_rate))
+                .chain(iter::once(&genome.saprophyte))
         }
     }
 
@@ -150,7 +154,8 @@ impl Genome {
                 .chain(iter::once(&mut genome.defence))
                 .chain(iter::once(&mut genome.energy_distribution))
                 .chain(iter::once(&mut genome.repulsive_force))
-                .chain(iter::once(&mut genome.repulsive_rate))            
+                .chain(iter::once(&mut genome.repulsive_rate))
+                .chain(iter::once(&mut genome.saprophyte))
         }
     }
 

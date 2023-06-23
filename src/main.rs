@@ -121,7 +121,7 @@ fn loop_logic(delay: u64) {
 
             physics_step(&mut physics_pipeline, &mut app.live_data.physics_data);
             process_bacteries(&mut app);
-//            try_save(&app);
+            try_save(&app);
             drop(app);
 
             let elapsed = frame_start.elapsed().as_micros();
