@@ -6,7 +6,7 @@ use live::utils::{
     rand_ranged_i32,
 };
 
-use live::save_load::load_settings;
+use live::save_load::{load_settings, try_save};
 use rand::Rng;
 
 use rapier2d::{

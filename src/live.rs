@@ -27,6 +27,7 @@ pub struct LiveSettings {
     pub light_force : [f32; 4],
     pub day_length_sec : f32,
     pub move_force : f32,
+    pub energy_for_move: f32,
     pub vel_range : Range<f32>,
 
     pub radius_range : Range<i32>,
@@ -115,6 +116,7 @@ impl LiveSettings {
             light_force: [0.2, 0.65, 1.0, 0.2],
             day_length_sec: 8.0 * 60.0,
             move_force: 100.0,
+            energy_for_move: 0.5,
             vel_range: -1.0..1.0,
             radius_range: 8..20,
             max_alive: 100.0,
@@ -145,6 +147,7 @@ fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     light_force: {:?},
     day_length_sec: {}
     move_force: {:?},
+    energy_for_move: {:?},
     vel_range: {:?},
     radius_range: {:?},
     max_alive: {:?},
@@ -168,6 +171,7 @@ fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.light_force,
         self.day_length_sec,
         self.move_force,
+        self.energy_for_move,
         self.vel_range,
         self.radius_range,
         self.max_alive,

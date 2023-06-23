@@ -9,6 +9,7 @@ use super::{app::AppData, LiveSettings};
 
 const DEFAULT_SETTINGS_FILE : &str =
 "move_force 	   		        100.0
+energy_for_move             0.5
 vel_range 					-1.0..1.0
 radius_range 				8..20
 max_alive 					100.0
@@ -98,6 +99,7 @@ pub fn load_settings() -> LiveSettings {
     let mut day_light_force = result.light_force[2];
     let mut floats = [
         ("move_force", &mut result.move_force),
+        ("energy_for_move", &mut result.energy_for_move),
 
         ("max_alive", &mut result.max_alive),
         ("dead_time", &mut result.dead_time),

@@ -62,6 +62,8 @@ fn process_movement(app: &mut AppData) {
             let vel = rand_range_vec2(vel_range.clone(), vel_range.clone()) * force;
             let vel_vec = Vector2::new(vel.x, vel.y);                
             app.live_data.physics_data.get_rb_mut(bac.rigidbody[i]).add_force(vel_vec, true);
+
+            bac.energy[i] -= bac.genome.movement_force[i] * app.live_data.settings.energy_for_move;
         }
     }
 }
@@ -159,8 +161,13 @@ fn process_repulsive(app: &mut AppData, a: usize, b: usize) {
 }
 
 fn process_division(app: &mut AppData) {
+    let deat_time = app.live_data.settings.dead_time;
     let live = &mut app.live_data;
     for i in live.bacteries.into_iter() {
+        if live.bacteries.is_dead(i, deat_time) {
+            continue;
+        }
+
         if calc_rate(live.bacteries.genome.division_rate[i]) {
             let energy = &mut live.bacteries.energy[i];
             if *energy >= live.settings.division_energy {
